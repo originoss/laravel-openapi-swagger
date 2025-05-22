@@ -2,181 +2,117 @@
 
 namespace LaravelOpenApi\Schema;
 
-// Import the DatabaseColumn DTO
-use LaravelOpenApi\Schema\DatabaseColumn;
-use LaravelOpenApi\Discovery\ModelSchema; // Add this
-use LaravelOpenApi\Attributes\Schema as OpenApiSchemaAttribute; // Add this with alias
+// Remove: use LaravelOpenApi\Schema\DatabaseColumn; // No longer needed
+use LaravelOpenApi\Discovery\ModelSchema;
+use LaravelOpenApi\Attributes\Property as PropertyAttribute;
+use LaravelOpenApi\Attributes\Schema as SchemaAttribute;
 
 class SchemaBuilder
 {
     // Constructor might be needed later for config or other dependencies
     // public function __construct() {}
 
-    /**
-     * Builds an OpenAPI property schema from a database column definition.
-     *
-     * @param DatabaseColumn $column
-     * @return array
-     */
-    public function buildPropertyFromColumn(DatabaseColumn $column): array
-    {
-        $property = match(strtolower($column->type)) { // Use strtolower for case-insensitivity
-            'string', 'varchar', 'text', 'char' => [ // Added char
-                'type' => 'string',
-                'maxLength' => $column->length,
-            ],
-            'integer', 'int', 'smallint', 'mediumint', 'tinyint' => [ // Added more int types
-                'type' => 'integer',
-                'format' => 'int32', // Default to int32, can be overridden
-            ],
-            'bigint' => [
-                'type' => 'integer',
-                'format' => 'int64',
-            ],
-            'decimal', 'numeric' => [ // Added numeric
-                'type' => 'number',
-                'format' => 'double', // Or choose a more specific format if available
-            ],
-            'float' => [
-                'type' => 'number',
-                'format' => 'float',
-            ],
-            'double' => [
-                'type' => 'number',
-                'format' => 'double',
-            ],
-            'boolean', 'bool' => ['type' => 'boolean'], // Added bool
-            'date' => ['type' => 'string', 'format' => 'date'],
-            'datetime', 'timestamp' => ['type' => 'string', 'format' => 'date-time'],
-            'json', 'jsonb' => ['type' => 'object', 'additionalProperties' => true], // Added jsonb
-            'enum', 'set' => ['type' => 'string', 'enum' => []], // Placeholder for actual enum values
-            default => ['type' => 'string'] // Fallback for unknown types
-        };
-
-        if ($column->nullable) {
-            $property['nullable'] = true;
-        }
-        
-        // Remove maxLength if null, as it's not valid OpenAPI if not set.
-        if (isset($property['maxLength']) && is_null($property['maxLength'])) {
-            unset($property['maxLength']);
-        }
-
-        return $property;
-    }
-
-    // buildModelSchema will be added in the next step
-
-    /**
-     * Builds an OpenAPI schema for a given model.
-     * (Partial implementation focusing on columns for now)
-     *
-     * @param ModelSchema $model The model schema DTO from discovery.
-     * @return array The OpenAPI schema definition for the model.
-     */
     public function buildModelSchema(ModelSchema $model): array
     {
         $properties = [];
-        $required = [];
+        $inferredRequired = [];
 
-        // ---- Database Columns (Mocked for now) ----
-        // TODO: Replace this with actual database schema inspection
-        $mockColumns = $this->getMockDatabaseColumns($model->table, $model->casts);
-        
-        foreach ($mockColumns as $column) {
-            $propertySchema = $this->buildPropertyFromColumn($column);
-            $properties[$column->name] = $propertySchema;
-
-            if (!$column->nullable && !$column->hasDefault) {
-                $required[] = $column->name;
+        $schemaAttribute = null;
+        foreach ($model->attributes['class'] ?? [] as $attr) {
+            if ($attr instanceof SchemaAttribute) {
+                $schemaAttribute = $attr;
+                break;
             }
         }
-        // ---- End Database Columns ----
 
-        // ---- Relationships (Placeholder) ----
-        // TODO: Implement relationship processing based on $model->relationships
-        // foreach ($model->relationships as $relationship) {
-        //     $properties[$relationship->name] = $this->buildRelationshipProperty($relationship);
-        // }
-        // ---- End Relationships ----
+        foreach ($model->attributes['properties'] ?? [] as $propertyName => $propertyAttributes) {
+            /** @var PropertyAttribute|null $propertyAttrInstance */
+            $propertyAttrInstance = null;
+            foreach ($propertyAttributes as $attr) {
+                if ($attr instanceof PropertyAttribute) {
+                    $propertyAttrInstance = $attr;
+                    break;
+                }
+            }
 
-        // ---- Attribute Overrides (Placeholder) ----
-        // TODO: Implement attribute overrides processing using $model->attributes
-        // $this->applyAttributeOverrides($properties, $model->attributes);
-        // ---- End Attribute Overrides ----
+            if ($propertyAttrInstance) {
+                // *** This is the line to change ***
+                $properties[$propertyName] = $this->buildSchemaFromPropertyAttribute($propertyAttrInstance);
+
+                if (!$propertyAttrInstance->nullable) {
+                    $inferredRequired[] = $propertyName;
+                }
+            }
+        }
+        
+        $finalRequired = $schemaAttribute?->required ?: $inferredRequired;
 
         return [
-            'type' => 'object',
-            'title' => class_basename($model->class), // Using class_basename for a cleaner title
-            'description' => $this->generateModelDescription($model), // Optional: Generate a basic description
+            'type' => $schemaAttribute?->type ?: 'object',
+            'title' => $schemaAttribute?->title ?: class_basename($model->class),
+            'description' => $schemaAttribute?->description ?: $this->generateModelDescription($model->class, $schemaAttribute),
             'properties' => $properties,
-            'required' => array_values(array_unique($required)), // Ensure unique and re-index
+            'required' => array_values(array_unique($finalRequired)),
         ];
     }
 
     /**
-     * MOCK IMPLEMENTATION: Generates dummy database columns for a table.
-     * Replace with actual DB schema reading (e.g., from Doctrine DBAL).
+     * Builds an OpenAPI property schema from a Property attribute.
+     *
+     * @param PropertyAttribute $propertyAttribute The Property attribute instance.
+     * @return array The OpenAPI property schema.
      */
-    private function getMockDatabaseColumns(string $tableName, array $casts): array
+    private function buildSchemaFromPropertyAttribute(PropertyAttribute $propertyAttribute): array
     {
-        $uniqueColumns = []; // Use this to track columns and avoid duplicates by name
+        $propertySchema = [];
 
-        // Example: Add an ID column for any table
-        $uniqueColumns['id'] = new DatabaseColumn(name: 'id', type: 'bigint', nullable: false, hasDefault: false);
-
-        // Add some common fields based on table name or conventions
-        if ($tableName === 'users') { // Example for a 'users' table
-            $uniqueColumns['name'] = new DatabaseColumn(name: 'name', type: 'string', length: 255, nullable: false);
-            $uniqueColumns['email'] = new DatabaseColumn(name: 'email', type: 'string', length: 255, nullable: false);
-            $uniqueColumns['email_verified_at'] = new DatabaseColumn(name: 'email_verified_at', type: 'timestamp', nullable: true);
-            $uniqueColumns['password'] = new DatabaseColumn(name: 'password', type: 'string', length: 255, nullable: false);
-            $uniqueColumns['remember_token'] = new DatabaseColumn(name: 'remember_token', type: 'string', length: 100, nullable: true);
+        // Required OpenAPI fields (even if null in attribute, provide key if applicable)
+        // Type is not strictly required by OpenAPI spec for a property if using oneOf, anyOf etc.
+        // but for a basic property, it's fundamental.
+        if ($propertyAttribute->type) {
+            $propertySchema['type'] = $propertyAttribute->type;
+        } else {
+            // Default to 'string' if not specified, or handle as error, or make it configurable.
+            // For now, let's default to string as it's a common scenario.
+            $propertySchema['type'] = 'string'; 
         }
 
-        // Add timestamp columns if not already added by specific table logic
-        if (!isset($uniqueColumns['created_at'])) {
-            $uniqueColumns['created_at'] = new DatabaseColumn(name: 'created_at', type: 'timestamp', nullable: true);
-        }
-        if (!isset($uniqueColumns['updated_at'])) {
-            $uniqueColumns['updated_at'] = new DatabaseColumn(name: 'updated_at', type: 'timestamp', nullable: true);
-        }
+        // Optional OpenAPI fields, only add if value is not null/empty
+        if ($propertyAttribute->description) $propertySchema['description'] = $propertyAttribute->description;
+        if ($propertyAttribute->format) $propertySchema['format'] = $propertyAttribute->format;
         
-        // Infer types from casts if possible (simplified)
-        foreach($casts as $fieldName => $castType) {
-            if (!isset($uniqueColumns[$fieldName])) { // Only if not already defined by common fields
-                 $dbType = match(explode(':', $castType)[0]) { // explode for casts like 'decimal:2'
-                    'int', 'integer' => 'integer',
-                    'real', 'float', 'double', 'decimal' => 'float', // Assuming float for simplicity
-                    'string' => 'string',
-                    'bool', 'boolean' => 'boolean',
-                    'date', 'datetime', 'custom_datetime', 'timestamp' => 'datetime',
-                    'array', 'json', 'object', 'collection' => 'json',
-                    default => null, // Unknown cast
-                 };
-                 if ($dbType) {
-                    // Add to uniqueColumns to ensure it's not overridden by a later, less specific definition
-                    $uniqueColumns[$fieldName] = new DatabaseColumn(name: $fieldName, type: $dbType, nullable: true); // Assume nullable for cast fields
-                 }
-            }
-        }
+        // Examples & Example
+        if ($propertyAttribute->example !== null) $propertySchema['example'] = $propertyAttribute->example; // Allow any type for example
+        if (!empty($propertyAttribute->examples)) $propertySchema['examples'] = $propertyAttribute->examples; // examples should be an array of Example Objects or values
+
+        // Nullable: In OpenAPI 3.0, nullable is a boolean.
+        // If $propertyAttribute->nullable is true, set 'nullable: true'.
+        // If false, it's the default, so we can omit it or explicitly set 'nullable: false'.
+        // Let's be explicit for clarity if it's true.
+        if ($propertyAttribute->nullable) $propertySchema['nullable'] = true;
+        // If type is "object" or "array", nullable is handled differently (not as a boolean sibling to type).
+        // However, for scalar types, this is fine. The Property attribute has a boolean nullable.
+
+        if ($propertyAttribute->default !== null) $propertySchema['default'] = $propertyAttribute->default;
         
-        return array_values($uniqueColumns); // Return the values, which are the DatabaseColumn objects
+        // Constraints
+        if ($propertyAttribute->minLength !== null) $propertySchema['minLength'] = $propertyAttribute->minLength;
+        if ($propertyAttribute->maxLength !== null) $propertySchema['maxLength'] = $propertyAttribute->maxLength;
+        if ($propertyAttribute->minimum !== null) $propertySchema['minimum'] = $propertyAttribute->minimum;
+        if ($propertyAttribute->maximum !== null) $propertySchema['maximum'] = $propertyAttribute->maximum;
+        if (!empty($propertyAttribute->enum)) $propertySchema['enum'] = $propertyAttribute->enum;
+        
+        // Add other relevant properties from your PropertyAttribute definition as needed
+        // e.g., pattern, uniqueItems, readOnly, writeOnly etc.
+
+        return $propertySchema;
     }
-    
-    /**
-     * Generates a basic model description from its class name or attributes.
-     */
-    private function generateModelDescription(ModelSchema $model): string
+
+    private function generateModelDescription(string $modelClassName, ?SchemaAttribute $schemaAttribute): string
     {
-        // Check for a #[Schema(description: "...")] attribute first
-        $classAttributes = $model->attributes['class'] ?? [];
-        foreach ($classAttributes as $attribute) {
-            // Use the aliased import here
-            if ($attribute instanceof OpenApiSchemaAttribute && !empty($attribute->description)) {
-                return $attribute->description;
-            }
+        if ($schemaAttribute && !empty($schemaAttribute->description)) {
+            return $schemaAttribute->description;
         }
-        return class_basename($model->class) . ' model.';
+        return class_basename($modelClassName) . ' model definition.';
     }
 }
