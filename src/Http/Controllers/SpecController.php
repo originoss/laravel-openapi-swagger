@@ -67,4 +67,19 @@ class SpecController extends Controller
         return response($content, 200)->header('Content-Type', 'application/yaml'); 
         // Or 'text/yaml', 'application/x-yaml'. 'application/yaml' is common.
     }
+
+    public function ui() // Return type hint : \Illuminate\Contracts\View\View
+    {
+        $viewName = config('openapi.ui.view', 'openapi::swagger-ui'); // Use package view namespace
+        $specUrlJson = route(config('openapi.ui.spec_route_name_json', 'openapi.json'));
+
+        // Allow passing additional Swagger UI config from openapi.php if needed in the future
+        // $swaggerUiConfig = config('openapi.ui.config', []);
+
+        return view($viewName, [
+            'title' => config('openapi.ui.title', 'OpenAPI Documentation'),
+            'specUrlJson' => $specUrlJson, // Pass the JSON spec URL to the view
+            // 'swaggerUiConfig' => $swaggerUiConfig, // For future advanced config
+        ]);
+    }
 }

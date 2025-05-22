@@ -4,7 +4,8 @@ namespace LaravelOpenApi\Commands;
 
 use Illuminate\Console\Command;
 use LaravelOpenApi\Generators\OpenApiGenerator;
-use Illuminate\Support\Facades\File; // Using Laravel's File facade
+use Illuminate\Support\Facades\File; 
+use Symfony\Component\Yaml\Yaml; // Add this import
 
 class GenerateCommand extends Command
 {
@@ -23,22 +24,33 @@ class GenerateCommand extends Command
         
         $output = $this->option('output');
         $format = strtolower($this->option('format'));
+        
+        // Adjust output filename extension based on format, if not already part of $output option
+        $outputExtension = pathinfo($output, PATHINFO_EXTENSION);
+
+        if (empty($outputExtension)) { // If --output doesn't have an extension, append based on format
+            $output .= '.' . $format;
+        } elseif (strtolower($outputExtension) !== $format) { // Use strtolower for comparison
+            $this->warn("Output filename extension .{$outputExtension} does not match format --format={$format}. Using format {$format} with original filename.");
+            // Optionally, force extension:
+            // $output = pathinfo($output, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR . pathinfo($output, PATHINFO_FILENAME) . '.' . $format;
+        }
+
         $content = '';
 
         if ($format === 'yaml') {
-            $this->error('YAML output is not yet implemented. Please use format=json.');
-            // For future:
-            // try {
-            //     if (!class_exists(\Symfony\Component\Yaml\Yaml::class)) {
-            //         $this->error('symfony/yaml package is required for YAML output. Please install it: composer require symfony/yaml');
-            //         return Command::FAILURE;
-            //     }
-            //     $content = \Symfony\Component\Yaml\Yaml::dump($spec, 4, 2, \Symfony\Component\Yaml\Yaml::DUMP_OBJECT_AS_MAP);
-            // } catch (\Throwable $e) {
-            //     $this->error('Failed to generate YAML: ' . $e->getMessage());
-            //     return Command::FAILURE;
-            // }
-            return Command::FAILURE; // Remove this once YAML is implemented
+            if (!class_exists(Yaml::class)) {
+                $this->error('symfony/yaml package is required for YAML output. Please install it: composer require symfony/yaml');
+                return Command::FAILURE;
+            }
+            try {
+                // DUMP_OBJECT_AS_MAP is good for OpenAPI objects.
+                // DUMP_MULTI_LINE_LITERAL_BLOCK improves readability for descriptions.
+                $content = Yaml::dump($spec, 4, 2, Yaml::DUMP_OBJECT_AS_MAP | Yaml::DUMP_MULTI_LINE_LITERAL_BLOCK);
+            } catch (\Throwable $e) {
+                $this->error('Failed to generate YAML: ' . $e->getMessage());
+                return Command::FAILURE;
+            }
         } elseif ($format === 'json') {
             $content = json_encode($spec, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
             if (json_last_error() !== JSON_ERROR_NONE) {

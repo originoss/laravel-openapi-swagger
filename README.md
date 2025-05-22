@@ -208,3 +208,42 @@ php artisan openapi:generate
 By default, this will create an `openapi.json` file in your project's `public` directory. You can customize the output path, format (JSON or YAML), and other generation options in the `config/openapi.php` file. Refer to the configuration file for more details on available options.
 
 *(Further details on CLI commands and advanced configuration will be added later.)*
+
+### Output Formats (JSON/YAML)
+
+By default, the `openapi:generate` command outputs in JSON format. You can also generate the specification in YAML:
+
+```bash
+php artisan openapi:generate --format=yaml
+```
+
+If you haven't already, you might need to install the `symfony/yaml` package:
+
+```bash
+composer require symfony/yaml
+```
+
+The output filename will automatically use the correct extension (e.g., `openapi.yaml`) if not specified in the `--output` option.
+
+## Viewing API Documentation with Swagger UI
+
+This library includes a built-in Swagger UI to render your OpenAPI specification.
+
+- **Accessing the UI**: By default, you can access it at the `/openapi/ui` route in your application.
+- **Configuration**:
+    - **Enable/Disable**: You can enable or disable the UI route via the `openapi.ui.enabled` setting in your `config/openapi.php` file.
+    - **Route Path**: The path for the UI (e.g., `/openapi/ui`) can be changed using the `openapi.ui.route` configuration key.
+    - **Spec URL**: The UI loads the JSON version of your spec by default (e.g., from `/openapi.json`). The route name used for this is configurable via `openapi.ui.spec_route_name_json`.
+    - **HTML Title**: The title of the Swagger UI HTML page can be set with `openapi.ui.title`.
+
+Refer to the `ui` section in `config/openapi.php` for all available options.
+
+### Customizing the Swagger UI View
+
+If you need to customize the appearance or behavior of Swagger UI, you can publish its Blade view:
+
+```bash
+php artisan vendor:publish --tag=openapi-views
+```
+
+This will copy the `swagger-ui.blade.php` view to `resources/views/vendor/openapi/`. You can then modify this file as needed. For example, you might want to update Swagger UI versions, change default configurations, or adjust the HTML layout.

@@ -1,0 +1,5 @@
+#!/usr/bin/env php
+<?php
+// Placeholder artisan file for demo structure.
+// In a real Laravel app, this would bootstrap the application and run Artisan.
+echo "Demo artisan placeholder.\n";
