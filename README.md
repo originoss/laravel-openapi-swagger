@@ -196,3 +196,15 @@ class User extends Model
 ```
 
 *(Next: Generating the Specification)*
+
+## Generating the Specification
+
+Once you have annotated your controllers and models, you can generate the OpenAPI specification using the following Artisan command:
+
+```bash
+php artisan openapi:generate
+```
+
+By default, this will create an `openapi.json` file in your project's `public` directory. You can customize the output path, format (JSON or YAML), and other generation options in the `config/openapi.php` file. Refer to the configuration file for more details on available options.
+
+*(Further details on CLI commands and advanced configuration will be added later.)*
