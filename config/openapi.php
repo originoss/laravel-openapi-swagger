@@ -57,5 +57,17 @@ return [
     ],
 
     // Placeholder for spec serving configuration, to be used by the Service Provider's boot method later
-    // 'serve_spec' => env('OPENAPI_SERVE_SPEC', false), 
+    'serve_spec' => env('OPENAPI_SERVE_SPEC', true), // Default to true to enable by default
+
+    'paths' => [
+        'json_route_path' => env('OPENAPI_JSON_ROUTE_PATH', '/openapi.json'),
+        'yaml_route_path' => env('OPENAPI_YAML_ROUTE_PATH', '/openapi.yaml'),
+        
+        // Output path for the openapi:generate command.
+        // This should align with what SpecController expects.
+        // The 'output_directory' is relative to public_path().
+        // The 'output_filename' is without extension.
+        'output_directory' => env('OPENAPI_OUTPUT_DIRECTORY', ''), // e.g., 'api-docs' for public/api-docs/openapi.json
+        'output_filename' => env('OPENAPI_OUTPUT_FILENAME', 'openapi'), // results in openapi.json or openapi.yaml
+    ],
 ];
