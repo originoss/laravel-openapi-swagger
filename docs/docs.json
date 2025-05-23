@@ -1,0 +1,58 @@
+{
+  "name": "Laravel OpenAPI",
+  "description": "A Laravel package for generating OpenAPI specifications from your code using PHP 8 attributes",
+  "sidebar": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        {
+          "title": "Introduction",
+          "href": "/getting-started",
+          "icon": "rocket"
+        },
+        {
+          "title": "Installation",
+          "href": "/installation",
+          "icon": "download"
+        },
+        {
+          "title": "Configuration",
+          "href": "/configuration",
+          "icon": "cog"
+        }
+      ]
+    },
+    {
+      "group": "Usage guide",
+      "pages": [
+        {
+          "title": "Basic usage",
+          "href": "/usage",
+          "icon": "book-open"
+        },
+        {
+          "title": "API Reference",
+          "href": "/api-reference",
+          "icon": "code"
+        }
+      ]
+    },
+    {
+      "group": "Examples",
+      "pages": [
+        {
+          "title": "Controllers",
+          "href": "/examples/controllers"
+        },
+        {
+          "title": "Models",
+          "href": "/examples/models"
+        },
+        {
+          "title": "Advanced usage",
+          "href": "/examples/advanced/index"
+        }
+      ]
+    }
+  ]
+}

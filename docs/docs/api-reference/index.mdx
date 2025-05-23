@@ -1,0 +1,428 @@
+# API Reference
+
+This page provides a comprehensive reference of all attributes available in Laravel OpenAPI and their options.
+
+## Core attributes
+
+### Operation
+
+The `Operation` attribute documents an API endpoint.
+
+```php
+#[OA\Operation(
+    summary: string,                  // Short summary of what the operation does
+    description: string,              // Detailed description of the operation
+    operationId: string,              // Unique identifier for the operation (optional)
+    tags: array,                      // Array of tags for categorizing the operation (optional)
+    deprecated: bool,                 // Whether the operation is deprecated (optional, default: false)
+    externalDocs: string,             // URL to external documentation (optional)
+    security: array,                  // Security requirements for the operation (optional)
+)]
+```
+
+### Parameter
+
+The `Parameter` attribute documents an endpoint parameter.
+
+```php
+#[OA\Parameter(
+    name: string,                     // Name of the parameter
+    in: string,                       // Location of the parameter: 'path', 'query', 'header', or 'cookie'
+    description: string,              // Description of the parameter (optional)
+    required: bool,                   // Whether the parameter is required (optional, default: false for query/header/cookie, always true for path)
+    deprecated: bool,                 // Whether the parameter is deprecated (optional, default: false)
+    allowEmptyValue: bool,            // Whether the parameter allows empty values (optional, default: false)
+    style: string,                    // How the parameter value is serialized (optional)
+    explode: bool,                    // Whether arrays and objects should generate separate parameters for each array item or object property (optional)
+    allowReserved: bool,              // Whether reserved characters in the parameter value should be allowed (optional, default: false)
+    schema: OA\Schema|array,          // Schema defining the type used for the parameter (required)
+    examples: array,                  // Examples of the parameter value (optional)
+)]
+```
+
+### RequestBody
+
+The `RequestBody` attribute documents the request body for an operation.
+
+```php
+#[OA\RequestBody(
+    description: string,              // Description of the request body (optional)
+    required: bool,                   // Whether the request body is required (optional, default: false)
+    content: array,                   // Array of content types and their schemas (required)
+)]
+```
+
+### Response
+
+The `Response` attribute documents a response for an operation.
+
+```php
+#[OA\Response(
+    response: int|string,             // HTTP status code or 'default'
+    description: string,              // Description of the response (required)
+    headers: array,                   // Headers returned with the response (optional)
+    content: array,                   // Array of content types and their schemas (optional)
+    links: array,                     // Links to other operations (optional)
+)]
+```
+
+### Schema
+
+The `Schema` attribute documents a data model.
+
+```php
+#[OA\Schema(
+    title: string,                    // Name of the schema (optional)
+    description: string,              // Description of the schema (optional)
+    type: string,                     // Type of the schema: 'object', 'array', 'string', 'number', 'integer', 'boolean' (optional, default: 'object' for classes)
+    format: string,                   // Format of the schema (optional)
+    nullable: bool,                   // Whether the schema can be null (optional, default: false)
+    deprecated: bool,                 // Whether the schema is deprecated (optional, default: false)
+    required: array,                  // Array of required properties (optional)
+    properties: array,                // Array of properties (optional)
+    additionalProperties: bool|OA\Schema, // Whether additional properties are allowed (optional)
+    discriminator: array,             // Discriminator for polymorphism (optional)
+    readOnly: bool,                   // Whether the schema is read-only (optional, default: false)
+    writeOnly: bool,                  // Whether the schema is write-only (optional, default: false)
+    example: mixed,                   // Example of the schema (optional)
+    externalDocs: string,             // URL to external documentation (optional)
+)]
+```
+
+### Property
+
+The `Property` attribute documents a property of a schema.
+
+```php
+#[OA\Property(
+    property: string,                 // Name of the property (required when used at class level)
+    type: string,                     // Type of the property: 'string', 'number', 'integer', 'boolean', 'array', 'object' (required)
+    format: string,                   // Format of the property (optional)
+    description: string,              // Description of the property (optional)
+    nullable: bool,                   // Whether the property can be null (optional, default: false)
+    deprecated: bool,                 // Whether the property is deprecated (optional, default: false)
+    readOnly: bool,                   // Whether the property is read-only (optional, default: false)
+    writeOnly: bool,                  // Whether the property is write-only (optional, default: false)
+    example: mixed,                   // Example of the property (optional)
+    default: mixed,                   // Default value of the property (optional)
+    minimum: number,                  // Minimum value for numeric properties (optional)
+    maximum: number,                  // Maximum value for numeric properties (optional)
+    exclusiveMinimum: bool,           // Whether the minimum value is exclusive (optional, default: false)
+    exclusiveMaximum: bool,           // Whether the maximum value is exclusive (optional, default: false)
+    multipleOf: number,               // Value must be a multiple of this number (optional)
+    minLength: int,                   // Minimum length for string properties (optional)
+    maxLength: int,                   // Maximum length for string properties (optional)
+    pattern: string,                  // Regular expression pattern for string properties (optional)
+    minItems: int,                    // Minimum number of items for array properties (optional)
+    maxItems: int,                    // Maximum number of items for array properties (optional)
+    uniqueItems: bool,                // Whether array items must be unique (optional, default: false)
+    items: OA\Items,                  // Schema for array items (required for array properties)
+    enum: array|string,               // Enumeration of possible values or enum class name (optional)
+    properties: array,                // Properties for object properties (optional)
+)]
+```
+
+### Items
+
+The `Items` attribute documents the items of an array property.
+
+```php
+new OA\Items(
+    type: string,                     // Type of the items: 'string', 'number', 'integer', 'boolean', 'array', 'object' (optional)
+    format: string,                   // Format of the items (optional)
+    ref: string|class-string,         // Reference to a schema (optional)
+    nullable: bool,                   // Whether the items can be null (optional, default: false)
+    example: mixed,                   // Example of the items (optional)
+    enum: array|string,               // Enumeration of possible values or enum class name (optional)
+)
+```
+
+### MediaType
+
+The `MediaType` attribute documents a media type for a request body or response.
+
+```php
+new OA\MediaType(
+    mediaType: string,                // Media type (e.g., 'application/json')
+    schema: OA\Schema,                // Schema for the media type (required)
+    examples: array,                  // Examples of the media type (optional)
+    encoding: array,                  // Encoding for the media type (optional)
+)
+```
+
+### ApiTag
+
+The `ApiTag` attribute documents a tag for grouping operations.
+
+```php
+#[OA\ApiTag(
+    name: string,                     // Name of the tag (required)
+    description: string,              // Description of the tag (optional)
+    externalDocs: string,             // URL to external documentation (optional)
+)]
+```
+
+## Schema types and formats
+
+### String formats
+
+- `date` - ISO 8601 date: YYYY-MM-DD
+- `date-time` - ISO 8601 date-time: YYYY-MM-DDThh:mm:ssZ
+- `password` - Hints UIs to obscure input
+- `byte` - Base64-encoded
+- `binary` - Binary data
+- `email` - Email address
+- `uuid` - UUID
+- `uri` - URI
+
+### Number formats
+
+- `float` - Floating-point number
+- `double` - Double-precision floating-point number
+
+### Integer formats
+
+- `int32` - 32-bit integer
+- `int64` - 64-bit integer
+
+## Examples
+
+### Complete controller example
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\ApiTag(
+    name: 'Users',
+    description: 'User management endpoints'
+)]
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'List all users',
+        description: 'Retrieves a paginated list of users.'
+    )]
+    #[OA\Parameter(
+        name: 'page',
+        in: 'query',
+        description: 'Page number for pagination.',
+        required: false,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Parameter(
+        name: 'per_page',
+        in: 'query',
+        description: 'Number of items per page.',
+        required: false,
+        schema: new OA\Schema(type: 'integer', examples: [15])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A paginated list of users.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'data' => new OA\Property(
+                            type: 'array',
+                            items: new OA\Items(ref: User::class)
+                        ),
+                        'current_page' => new OA\Property(type: 'integer'),
+                        'last_page' => new OA\Property(type: 'integer'),
+                        'per_page' => new OA\Property(type: 'integer'),
+                        'total' => new OA\Property(type: 'integer')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function index(Request $request)
+    {
+        // Controller logic
+    }
+
+    #[OA\Operation(
+        summary: 'Create a new user',
+        description: 'Creates a new user with the provided data.'
+    )]
+    #[OA\RequestBody(
+        description: 'User data',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    required: ['name', 'email', 'password'],
+                    properties: [
+                        'name' => new OA\Property(type: 'string', maxLength: 255),
+                        'email' => new OA\Property(type: 'string', format: 'email', maxLength: 255),
+                        'password' => new OA\Property(type: 'string', format: 'password', minLength: 8)
+                    ]
+                )
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'User created successfully.',
+        content: [
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: User::class))
+        ]
+    )]
+    #[OA\Response(
+        response: 422,
+        description: 'Validation error.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string'),
+                        'errors' => new OA\Property(type: 'object')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function store(Request $request)
+    {
+        // Controller logic
+    }
+}
+```
+
+### Complete model example
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'Product',
+    description: 'Represents a product in the store.',
+    required: ['id', 'name', 'price']
+)]
+class Product extends Model
+{
+    #[OA\Property(
+        description: 'Unique identifier for the product.',
+        type: 'integer',
+        format: 'int64',
+        example: 1,
+        readOnly: true
+    )]
+    public int $id;
+
+    #[OA\Property(
+        description: 'Name of the product.',
+        type: 'string',
+        example: 'Smartphone XYZ',
+        maxLength: 255
+    )]
+    public string $name;
+
+    #[OA\Property(
+        description: 'Detailed description of the product.',
+        type: 'string',
+        example: 'The latest smartphone with amazing features',
+        nullable: true
+    )]
+    public ?string $description;
+
+    #[OA\Property(
+        description: 'Price of the product in USD.',
+        type: 'number',
+        format: 'float',
+        example: 999.99,
+        minimum: 0.01
+    )]
+    public float $price;
+
+    #[OA\Property(
+        description: 'Whether the product is in stock.',
+        type: 'boolean',
+        example: true,
+        default: true
+    )]
+    public bool $in_stock;
+
+    #[OA\Property(
+        description: 'Technical specifications of the product.',
+        type: 'object',
+        nullable: true,
+        properties: [
+            'weight' => new OA\Property(type: 'string', example: '200g'),
+            'dimensions' => new OA\Property(type: 'string', example: '15 x 7 x 0.8 cm'),
+            'color' => new OA\Property(type: 'string', example: 'Black')
+        ]
+    )]
+    public ?array $specifications;
+
+    #[OA\Property(
+        description: 'Product images.',
+        type: 'array',
+        nullable: true,
+        items: new OA\Items(
+            type: 'object',
+            properties: [
+                'url' => new OA\Property(type: 'string', format: 'uri'),
+                'is_primary' => new OA\Property(type: 'boolean')
+            ]
+        )
+    )]
+    public ?array $images;
+
+    #[OA\Property(
+        description: 'Timestamp when the product was created.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $created_at;
+
+    #[OA\Property(
+        description: 'Timestamp when the product was last updated.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T13:30:00Z',
+        readOnly: true
+    )]
+    public string $updated_at;
+}
+```
+
+## Artisan commands
+
+### Generate OpenAPI specification
+
+```bash
+php artisan openapi:generate [options]
+```
+
+Options:
+- `--format=json|yaml` - Output format (default: from config)
+- `--output=filename` - Output filename without extension (default: from config)
+- `--path=path` - Output directory (default: from config)
+- `--no-overwrite` - Don't overwrite existing files
+- `--verbose` - Show more information during generation
+
+### Clear OpenAPI cache
+
+```bash
+php artisan openapi:clear-cache
+```

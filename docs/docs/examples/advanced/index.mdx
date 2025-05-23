@@ -1,0 +1,612 @@
+# Advanced usage examples
+
+This page provides examples of advanced usage patterns for Laravel OpenAPI.
+
+## Security schemes
+
+Here's how to define and use security schemes in your API documentation:
+
+### Configuration
+
+First, define your security schemes in the `config/openapi.php` file:
+
+```php
+'security' => [
+    'schemes' => [
+        'bearerAuth' => [
+            'type' => 'http',
+            'scheme' => 'bearer',
+            'bearerFormat' => 'JWT',
+        ],
+        'apiKey' => [
+            'type' => 'apiKey',
+            'in' => 'header',
+            'name' => 'X-API-KEY',
+        ],
+        'oauth2' => [
+            'type' => 'oauth2',
+            'flows' => [
+                'authorizationCode' => [
+                    'authorizationUrl' => 'https://example.com/oauth/authorize',
+                    'tokenUrl' => 'https://example.com/oauth/token',
+                    'scopes' => [
+                        'read' => 'Read access',
+                        'write' => 'Write access',
+                    ],
+                ],
+            ],
+        ],
+    ],
+    'default' => ['bearerAuth'],
+],
+```
+
+### Using security in controllers
+
+Apply security requirements to your endpoints:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'Get authenticated user',
+        description: 'Retrieves the currently authenticated user.',
+        security: [['bearerAuth' => []]]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The authenticated user.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    #[OA\Response(response: 401, description: 'Unauthenticated.')]
+    public function user(Request $request)
+    {
+        // Controller logic
+    }
+
+    #[OA\Operation(
+        summary: 'Create a new user',
+        description: 'Creates a new user with admin privileges.',
+        security: [
+            ['bearerAuth' => []],
+            ['oauth2' => ['write']]
+        ]
+    )]
+    #[OA\RequestBody(
+        description: 'User data',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'User created successfully.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    public function store(Request $request)
+    {
+        // Controller logic
+    }
+}
+```
+
+## Custom response headers
+
+Document custom response headers:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'Get a specific user',
+        description: 'Retrieves a single user by their ID.'
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        in: 'path',
+        description: 'ID of the user to retrieve.',
+        required: true,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The requested user.',
+        headers: [
+            new OA\Header(
+                header: 'X-RateLimit-Limit',
+                description: 'The number of allowed requests in the current period',
+                schema: new OA\Schema(type: 'integer', example: 60)
+            ),
+            new OA\Header(
+                header: 'X-RateLimit-Remaining',
+                description: 'The number of remaining requests in the current period',
+                schema: new OA\Schema(type: 'integer', example: 59)
+            )
+        ],
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    #[OA\Response(response: 404, description: 'User not found.')]
+    public function show(int $id)
+    {
+        // Controller logic
+    }
+}
+```
+
+## Polymorphic Relationships
+
+Document polymorphic relationships:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'Comment',
+    description: 'Represents a comment on a commentable item.',
+    required: ['id', 'content', 'commentable_id', 'commentable_type']
+)]
+class Comment extends Model
+{
+    #[OA\Property(
+        description: 'Unique identifier for the comment.',
+        type: 'integer',
+        format: 'int64',
+        example: 1,
+        readOnly: true
+    )]
+    public int $id;
+
+    #[OA\Property(
+        description: 'Content of the comment.',
+        type: 'string',
+        example: 'This is a great post!'
+    )]
+    public string $content;
+
+    #[OA\Property(
+        description: 'ID of the commentable item.',
+        type: 'integer',
+        format: 'int64',
+        example: 1
+    )]
+    public int $commentable_id;
+
+    #[OA\Property(
+        description: 'Type of the commentable item.',
+        type: 'string',
+        example: 'App\\Models\\Post'
+    )]
+    public string $commentable_type;
+
+    #[OA\Property(
+        description: 'User who created the comment.',
+        type: 'object',
+        ref: User::class
+    )]
+    public User $user;
+
+    #[OA\Property(
+        description: 'When the comment was created.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $created_at;
+
+    #[OA\Property(
+        description: 'When the comment was last updated.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $updated_at;
+}
+```
+
+## Custom schema components
+
+Define reusable schema components:
+
+```php
+<?php
+
+namespace App\OpenApi\Schemas;
+
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'PaginationLinks',
+    description: 'Links for pagination.',
+    type: 'object'
+)]
+class PaginationLinks
+{
+    #[OA\Property(
+        description: 'Link to the first page.',
+        type: 'string',
+        format: 'uri',
+        example: 'https://example.com/api/users?page=1'
+    )]
+    public string $first;
+
+    #[OA\Property(
+        description: 'Link to the last page.',
+        type: 'string',
+        format: 'uri',
+        example: 'https://example.com/api/users?page=10'
+    )]
+    public string $last;
+
+    #[OA\Property(
+        description: 'Link to the previous page.',
+        type: 'string',
+        format: 'uri',
+        example: 'https://example.com/api/users?page=2',
+        nullable: true
+    )]
+    public ?string $prev;
+
+    #[OA\Property(
+        description: 'Link to the next page.',
+        type: 'string',
+        format: 'uri',
+        example: 'https://example.com/api/users?page=4',
+        nullable: true
+    )]
+    public ?string $next;
+}
+```
+
+```php
+<?php
+
+namespace App\OpenApi\Schemas;
+
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'PaginationMeta',
+    description: 'Metadata for pagination.',
+    type: 'object'
+)]
+class PaginationMeta
+{
+    #[OA\Property(
+        description: 'Current page number.',
+        type: 'integer',
+        example: 3
+    )]
+    public int $current_page;
+
+    #[OA\Property(
+        description: 'First item index on the current page.',
+        type: 'integer',
+        example: 21,
+        nullable: true
+    )]
+    public ?int $from;
+
+    #[OA\Property(
+        description: 'Last page number.',
+        type: 'integer',
+        example: 10
+    )]
+    public int $last_page;
+
+    #[OA\Property(
+        description: 'Base path for pagination links.',
+        type: 'string',
+        example: 'https://example.com/api/users'
+    )]
+    public string $path;
+
+    #[OA\Property(
+        description: 'Number of items per page.',
+        type: 'integer',
+        example: 10
+    )]
+    public int $per_page;
+
+    #[OA\Property(
+        description: 'Last item index on the current page.',
+        type: 'integer',
+        example: 30,
+        nullable: true
+    )]
+    public ?int $to;
+
+    #[OA\Property(
+        description: 'Total number of items.',
+        type: 'integer',
+        example: 100
+    )]
+    public int $total;
+}
+```
+
+Then use these components in your controllers:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\OpenApi\Schemas\PaginationLinks;
+use App\OpenApi\Schemas\PaginationMeta;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'List all users',
+        description: 'Retrieves a paginated list of users.'
+    )]
+    #[OA\Parameter(
+        name: 'page',
+        in: 'query',
+        description: 'Page number for pagination.',
+        required: false,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A paginated list of users.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'data' => new OA\Property(
+                            type: 'array',
+                            items: new OA\Items(ref: User::class)
+                        ),
+                        'links' => new OA\Property(ref: PaginationLinks::class),
+                        'meta' => new OA\Property(ref: PaginationMeta::class)
+                    ]
+                )
+            )
+        ]
+    )]
+    public function index(Request $request)
+    {
+        // Controller logic
+    }
+}
+```
+
+## Custom Response Schemas
+
+Define custom response schemas:
+
+```php
+<?php
+
+namespace App\OpenApi\Responses;
+
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'ValidationErrorResponse',
+    description: 'Response for validation errors.',
+    type: 'object'
+)]
+class ValidationErrorResponse
+{
+    #[OA\Property(
+        description: 'Error message.',
+        type: 'string',
+        example: 'The given data was invalid.'
+    )]
+    public string $message;
+
+    #[OA\Property(
+        description: 'Validation errors.',
+        type: 'object',
+        additionalProperties: [
+            'type' => 'array',
+            'items' => [
+                'type' => 'string'
+            ]
+        ],
+        example: [
+            'name' => ['The name field is required.'],
+            'email' => ['The email field is required.', 'The email must be a valid email address.']
+        ]
+    )]
+    public object $errors;
+}
+```
+
+Then use it in your controllers:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use App\OpenApi\Responses\ValidationErrorResponse;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'Create a new user',
+        description: 'Creates a new user with the provided data.'
+    )]
+    #[OA\RequestBody(
+        description: 'User data',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'User created successfully.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 422,
+        description: 'Validation error.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: ValidationErrorResponse::class)
+            )
+        ]
+    )]
+    public function store(Request $request)
+    {
+        // Controller logic
+    }
+}
+```
+
+## Custom OpenAPI Extensions
+
+You can add custom OpenAPI extensions to your documentation:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\ApiTag(
+    name: 'Users',
+    description: 'User management endpoints',
+    x: [
+        'tagGroup' => 'Core Resources',
+        'order' => 1
+    ]
+)]
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'List all users',
+        description: 'Retrieves a paginated list of users.',
+        x: [
+            'permissions' => ['view-users'],
+            'complexity' => 'low',
+            'cache-ttl' => 60
+        ]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A paginated list of users.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'data' => new OA\Property(
+                            type: 'array',
+                            items: new OA\Items(ref: User::class)
+                        )
+                    ]
+                )
+            )
+        ]
+    )]
+    public function index(Request $request)
+    {
+        // Controller logic
+    }
+}
+```
+
+## Custom Artisan Commands
+
+You can create custom Artisan commands to generate OpenAPI specifications for specific parts of your API:
+
+```php
+<?php
+
+namespace App\Console\Commands;
+
+use Illuminate\Console\Command;
+use LaravelOpenApi\Generators\OpenApiGenerator;
+
+class GenerateUserApiDocs extends Command
+{
+    protected $signature = 'openapi:generate-user-api';
+    protected $description = 'Generate OpenAPI specification for the User API';
+
+    public function handle(OpenApiGenerator $generator)
+    {
+        $this->info('Generating User API documentation...');
+
+        $config = config('openapi');
+        $config['scan']['controllers'] = [app_path('Http/Controllers/UserController.php')];
+        $config['scan']['models'] = [app_path('Models/User.php')];
+        $config['output']['filename'] = 'user-api';
+
+        $generator->generate($config);
+
+        $this->info('User API documentation generated successfully!');
+
+        return Command::SUCCESS;
+    }
+}
+```
+
+These examples demonstrate advanced usage patterns for Laravel OpenAPI. You can adapt these examples to fit your specific API documentation needs.

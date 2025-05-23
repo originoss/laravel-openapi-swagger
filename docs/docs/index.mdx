@@ -1,0 +1,69 @@
+---
+title: Laravel OpenAPI Documentation
+description: Generate OpenAPI specifications from your Laravel code using PHP 8 attributes
+---
+
+# Laravel OpenAPI
+
+Welcome to the Laravel OpenAPI documentation! This package allows you to generate OpenAPI (formerly Swagger) specifications from your Laravel code using PHP 8 attributes.
+
+## What is Laravel OpenAPI?
+
+Laravel OpenAPI is a powerful package that enables you to document your API endpoints and data models directly in your code using PHP 8 attributes. This approach ensures your API documentation stays up-to-date with your implementation, making it easier to maintain and share your API specifications.
+
+## Key features
+
+- **Attribute-driven documentation**: Use PHP 8 attributes to document your API endpoints and models
+- **Code-centric approach**: Keep your API documentation close to your code
+- **No database introspection**: Model schemas are derived solely from explicitly annotated attributes
+- **Laravel integration**: Seamlessly integrates with your Laravel projects
+- **Swagger UI**: Built-in Swagger UI to visualize and interact with your API documentation
+- **JSON and YAML support**: Generate specifications in both formats
+- **PHP 8 enum support**: Document enum types in your API
+
+## Quick example
+
+Here's a quick example of how to document a controller method:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'List all users',
+        description: 'Retrieves a paginated list of users.'
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A list of users.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Items(ref: User::class)
+                )
+            )
+        ]
+    )]
+    public function index()
+    {
+        // Your controller logic here
+    }
+}
+```
+
+## Getting started
+
+To get started with Laravel OpenAPI, check out the [Introduction](/getting-started) section, which provides an overview of the package and its core concepts. Then, follow the [Installation](/installation) guide to set up the package in your Laravel project.
+
+## Need help?
+
+If you encounter any issues or have questions about using Laravel OpenAPI, please refer to the [API Reference](/api-reference) or check out the [Examples](/examples/controllers) section for practical code samples.

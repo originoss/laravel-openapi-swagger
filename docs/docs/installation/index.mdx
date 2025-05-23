@@ -1,0 +1,138 @@
+# Installation
+
+Getting started with Laravel OpenAPI is straightforward. This guide will walk you through the installation process and initial setup.
+
+## Requirements
+
+- PHP 8.0 or higher
+- Laravel 8.0 or higher
+
+## Installation steps
+
+### 1. Install via Composer
+
+```bash
+composer require origin-oss/laravel-openapi
+```
+
+> Note: Replace `origin-oss/laravel-openapi` with the actual package name once registered on Packagist.
+
+### 2. Publish Configuration (Optional)
+
+If you need to customize the default settings, you can publish the configuration file:
+
+```bash
+php artisan vendor:publish --tag=openapi-config
+```
+
+This will create a `config/openapi.php` file in your project with the following default settings:
+
+```php
+return [
+    // Base path for your API
+    'base_path' => '/api',
+    
+    // OpenAPI specification version
+    'openapi_version' => '3.0.0',
+    
+    // API information
+    'info' => [
+        'title' => env('APP_NAME', 'Laravel') . ' API',
+        'version' => '1.0.0',
+        'description' => 'API Documentation',
+    ],
+    
+    // Servers configuration
+    'servers' => [
+        [
+            'url' => env('APP_URL', 'http://localhost'),
+            'description' => 'Local Development Server',
+        ],
+    ],
+    
+    // Output settings
+    'output' => [
+        'format' => 'json', // 'json' or 'yaml'
+        'filename' => 'openapi', // Without extension
+        'directory' => storage_path('app/openapi'),
+    ],
+    
+    // Route settings for Swagger UI
+    'routes' => [
+        'enabled' => true,
+        'prefix' => 'api/documentation',
+        'middleware' => ['web'],
+    ],
+    
+    // Directories to scan for annotated classes
+    'scan' => [
+        'controllers' => [
+            app_path('Http/Controllers'),
+        ],
+        'models' => [
+            app_path('Models'),
+        ],
+    ],
+];
+```
+
+### 3. Create your first documentation
+
+After installation, you can start documenting your API by adding attributes to your controllers and models. Here's a simple example:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use LaravelOpenApi\Attributes as OA;
+
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'List all users',
+        description: 'Retrieves a paginated list of users.'
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A list of users.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Items(ref: User::class)
+                )
+            )
+        ]
+    )]
+    public function index()
+    {
+        // Your controller logic here
+    }
+}
+```
+
+### 4. Generate OpenAPI specification
+
+Once you've documented your API endpoints and models, you can generate the OpenAPI specification using the following Artisan command:
+
+```bash
+php artisan openapi:generate
+```
+
+This will create an OpenAPI specification file in the directory specified in your configuration.
+
+### 5. View API documentation
+
+If you've enabled the Swagger UI routes in your configuration, you can view your API documentation by visiting:
+
+```
+http://your-app-url/api/documentation
+```
+
+## Next steps
+
+Now that you have Laravel OpenAPI installed, proceed to the [Configuration](/configuration) section to learn how to customize the package to suit your project's needs, or jump straight to the [Usage](/usage) section to start documenting your API.

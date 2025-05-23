@@ -1,0 +1,588 @@
+# Controller Examples
+
+This page provides practical examples of how to document your controllers using Laravel OpenAPI attributes.
+
+## Basic controller
+
+Here's a basic example of a controller with documented endpoints:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\ApiTag(
+    name: 'Users',
+    description: 'User management endpoints'
+)]
+class UserController extends Controller
+{
+    #[OA\Operation(
+        summary: 'List all users',
+        description: 'Retrieves a paginated list of users.'
+    )]
+    #[OA\Parameter(
+        name: 'page',
+        in: 'query',
+        description: 'Page number for pagination.',
+        required: false,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A paginated list of users.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'data' => new OA\Property(
+                            type: 'array',
+                            items: new OA\Items(ref: User::class)
+                        ),
+                        'current_page' => new OA\Property(type: 'integer'),
+                        'last_page' => new OA\Property(type: 'integer'),
+                        'per_page' => new OA\Property(type: 'integer'),
+                        'total' => new OA\Property(type: 'integer')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function index(Request $request): JsonResponse
+    {
+        $users = User::paginate($request->query('per_page', 15));
+        return response()->json($users);
+    }
+
+    #[OA\Operation(
+        summary: 'Get a specific user',
+        description: 'Retrieves a single user by their ID.'
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        in: 'path',
+        description: 'ID of the user to retrieve.',
+        required: true,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The requested user.',
+        content: [
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: User::class))
+        ]
+    )]
+    #[OA\Response(response: 404, description: 'User not found.')]
+    public function show(int $id): JsonResponse
+    {
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        return response()->json($user);
+    }
+}
+```
+
+## CRUD controller
+
+Here's a more complete example of a CRUD controller with all operations documented:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\ApiTag(
+    name: 'Products',
+    description: 'Product management endpoints'
+)]
+class ProductController extends Controller
+{
+    /**
+     * List all products
+     */
+    #[OA\Operation(
+        summary: 'List all products',
+        description: 'Retrieves a paginated list of products with optional filtering.'
+    )]
+    #[OA\Parameter(
+        name: 'page',
+        in: 'query',
+        description: 'Page number for pagination.',
+        required: false,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Parameter(
+        name: 'per_page',
+        in: 'query',
+        description: 'Number of items per page.',
+        required: false,
+        schema: new OA\Schema(type: 'integer', examples: [15])
+    )]
+    #[OA\Parameter(
+        name: 'category',
+        in: 'query',
+        description: 'Filter products by category.',
+        required: false,
+        schema: new OA\Schema(type: 'string', examples: ['Electronics'])
+    )]
+    #[OA\Parameter(
+        name: 'in_stock',
+        in: 'query',
+        description: 'Filter products by stock status.',
+        required: false,
+        schema: new OA\Schema(type: 'boolean', examples: [true])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'A paginated list of products.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'data' => new OA\Property(
+                            type: 'array',
+                            items: new OA\Items(ref: Product::class)
+                        ),
+                        'meta' => new OA\Property(
+                            type: 'object',
+                            properties: [
+                                'current_page' => new OA\Property(type: 'integer'),
+                                'last_page' => new OA\Property(type: 'integer'),
+                                'per_page' => new OA\Property(type: 'integer'),
+                                'total' => new OA\Property(type: 'integer')
+                            ]
+                        )
+                    ]
+                )
+            )
+        ]
+    )]
+    public function index(Request $request): JsonResponse
+    {
+        // Controller logic
+        return response()->json([]);
+    }
+
+    /**
+     * Create a new product
+     */
+    #[OA\Operation(
+        summary: 'Create a new product',
+        description: 'Creates a new product with the provided data.'
+    )]
+    #[OA\RequestBody(
+        description: 'Product data',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: Product::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'Product created successfully.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: Product::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 422,
+        description: 'Validation error.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string'),
+                        'errors' => new OA\Property(type: 'object')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function store(Request $request): JsonResponse
+    {
+        // Controller logic
+        return response()->json([], 201);
+    }
+
+    /**
+     * Get a specific product
+     */
+    #[OA\Operation(
+        summary: 'Get a specific product',
+        description: 'Retrieves a single product by its ID.'
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        in: 'path',
+        description: 'ID of the product to retrieve.',
+        required: true,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The requested product.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: Product::class)
+            )
+        ]
+    )]
+    #[OA\Response(response: 404, description: 'Product not found.')]
+    public function show(int $id): JsonResponse
+    {
+        // Controller logic
+        return response()->json([]);
+    }
+
+    /**
+     * Update a product
+     */
+    #[OA\Operation(
+        summary: 'Update a product',
+        description: 'Updates an existing product with the provided data.'
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        in: 'path',
+        description: 'ID of the product to update.',
+        required: true,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\RequestBody(
+        description: 'Product data',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: Product::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Product updated successfully.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: Product::class)
+            )
+        ]
+    )]
+    #[OA\Response(response: 404, description: 'Product not found.')]
+    #[OA\Response(
+        response: 422,
+        description: 'Validation error.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string'),
+                        'errors' => new OA\Property(type: 'object')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function update(Request $request, int $id): JsonResponse
+    {
+        // Controller logic
+        return response()->json([]);
+    }
+
+    /**
+     * Delete a product
+     */
+    #[OA\Operation(
+        summary: 'Delete a product',
+        description: 'Deletes a product by its ID.'
+    )]
+    #[OA\Parameter(
+        name: 'id',
+        in: 'path',
+        description: 'ID of the product to delete.',
+        required: true,
+        schema: new OA\Schema(type: 'integer', examples: [1])
+    )]
+    #[OA\Response(response: 204, description: 'Product deleted successfully.')]
+    #[OA\Response(response: 404, description: 'Product not found.')]
+    public function destroy(int $id): JsonResponse
+    {
+        // Controller logic
+        return response()->json(null, 204);
+    }
+}
+```
+
+## Controller with file upload
+
+Here's an example of a controller method that handles file uploads:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use LaravelOpenApi\Attributes as OA;
+
+class FileController extends Controller
+{
+    #[OA\Operation(
+        tags: ['Files'],
+        summary: 'Upload a file',
+        description: 'Uploads a file to the server.'
+    )]
+    #[OA\RequestBody(
+        description: 'File to upload',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'file' => new OA\Property(
+                            type: 'string',
+                            format: 'binary',
+                            description: 'The file to upload'
+                        ),
+                        'description' => new OA\Property(
+                            type: 'string',
+                            description: 'Description of the file'
+                        )
+                    ],
+                    required: ['file']
+                )
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 201,
+        description: 'File uploaded successfully.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'id' => new OA\Property(type: 'integer'),
+                        'filename' => new OA\Property(type: 'string'),
+                        'url' => new OA\Property(type: 'string', format: 'uri'),
+                        'description' => new OA\Property(type: 'string'),
+                        'created_at' => new OA\Property(type: 'string', format: 'date-time')
+                    ]
+                )
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 422,
+        description: 'Validation error.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string'),
+                        'errors' => new OA\Property(type: 'object')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function upload(Request $request): JsonResponse
+    {
+        // Controller logic
+        return response()->json([], 201);
+    }
+}
+```
+
+## Controller with authentication
+
+Here's an example of a controller that requires authentication:
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\ApiTag(
+    name: 'Authentication',
+    description: 'Authentication endpoints'
+)]
+class AuthController extends Controller
+{
+    #[OA\Operation(
+        summary: 'Login',
+        description: 'Authenticates a user and returns an access token.'
+    )]
+    #[OA\RequestBody(
+        description: 'User credentials',
+        required: true,
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    required: ['email', 'password'],
+                    properties: [
+                        'email' => new OA\Property(type: 'string', format: 'email'),
+                        'password' => new OA\Property(type: 'string', format: 'password')
+                    ]
+                )
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Login successful.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'token' => new OA\Property(type: 'string'),
+                        'token_type' => new OA\Property(type: 'string', example: 'Bearer'),
+                        'expires_in' => new OA\Property(type: 'integer', example: 3600)
+                    ]
+                )
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 401,
+        description: 'Invalid credentials.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string', example: 'Invalid credentials')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function login(Request $request): JsonResponse
+    {
+        // Controller logic
+        return response()->json([]);
+    }
+
+    #[OA\Operation(
+        summary: 'Get authenticated user',
+        description: 'Retrieves the currently authenticated user.',
+        security: [['bearerAuth' => []]]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'The authenticated user.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(ref: User::class)
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 401,
+        description: 'Unauthenticated.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string', example: 'Unauthenticated')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function user(Request $request): JsonResponse
+    {
+        // Controller logic
+        return response()->json([]);
+    }
+
+    #[OA\Operation(
+        summary: 'Logout',
+        description: 'Invalidates the current access token.',
+        security: [['bearerAuth' => []]]
+    )]
+    #[OA\Response(
+        response: 200,
+        description: 'Logout successful.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string', example: 'Successfully logged out')
+                    ]
+                )
+            )
+        ]
+    )]
+    #[OA\Response(
+        response: 401,
+        description: 'Unauthenticated.',
+        content: [
+            new OA\MediaType(
+                mediaType: 'application/json',
+                schema: new OA\Schema(
+                    type: 'object',
+                    properties: [
+                        'message' => new OA\Property(type: 'string', example: 'Unauthenticated')
+                    ]
+                )
+            )
+        ]
+    )]
+    public function logout(Request $request): JsonResponse
+    {
+        // Controller logic
+        return response()->json([]);
+    }
+}
+```
+
+These examples demonstrate how to document various types of controllers and endpoints using Laravel OpenAPI attributes. You can adapt these examples to fit your specific API needs.

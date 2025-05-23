@@ -1,0 +1,552 @@
+# Model examples
+
+This page provides practical examples of how to document your models using Laravel OpenAPI attributes.
+
+## Basic model
+
+Here's a basic example of a model with documented properties:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'User',
+    description: 'Represents a user in the system.',
+    required: ['id', 'name', 'email']
+)]
+class User extends Model
+{
+    #[OA\Property(
+        description: 'Unique identifier for the user.',
+        type: 'integer',
+        format: 'int64',
+        example: 1,
+        readOnly: true
+    )]
+    public int $id;
+
+    #[OA\Property(
+        description: 'Full name of the user.',
+        type: 'string',
+        example: 'John Doe',
+        maxLength: 255
+    )]
+    public string $name;
+
+    #[OA\Property(
+        description: 'Email address of the user.',
+        type: 'string',
+        format: 'email',
+        example: 'john@example.com',
+        maxLength: 255
+    )]
+    public string $email;
+
+    #[OA\Property(
+        description: 'When the email was verified.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        nullable: true
+    )]
+    public ?string $email_verified_at;
+
+    #[OA\Property(
+        description: 'When the user was created.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $created_at;
+
+    #[OA\Property(
+        description: 'When the user was last updated.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $updated_at;
+}
+```
+
+## Model with class-level property definitions
+
+You can also define properties at the class level instead of on each property:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'Product',
+    description: 'Represents a product in the store.',
+    required: ['id', 'name', 'price']
+)]
+#[OA\Property(
+    property: 'id',
+    description: 'Unique identifier for the product.',
+    type: 'integer',
+    format: 'int64',
+    example: 1,
+    readOnly: true
+)]
+#[OA\Property(
+    property: 'name',
+    description: 'Name of the product.',
+    type: 'string',
+    example: 'Smartphone XYZ',
+    maxLength: 255
+)]
+#[OA\Property(
+    property: 'description',
+    description: 'Detailed description of the product.',
+    type: 'string',
+    example: 'The latest smartphone with amazing features',
+    nullable: true
+)]
+#[OA\Property(
+    property: 'price',
+    description: 'Price of the product in USD.',
+    type: 'number',
+    format: 'float',
+    example: 999.99,
+    minimum: 0.01
+)]
+#[OA\Property(
+    property: 'category',
+    description: 'Category of the product.',
+    type: 'string',
+    example: 'Electronics',
+    nullable: true
+)]
+#[OA\Property(
+    property: 'in_stock',
+    description: 'Whether the product is in stock.',
+    type: 'boolean',
+    example: true,
+    default: true
+)]
+class Product extends Model
+{
+    protected $fillable = [
+        'name',
+        'description',
+        'price',
+        'category',
+        'in_stock',
+    ];
+
+    protected $casts = [
+        'price' => 'float',
+        'in_stock' => 'boolean',
+    ];
+}
+```
+
+## Model with nested objects
+
+Here's an example of a model with nested object properties:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'Order',
+    description: 'Represents an order in the system.',
+    required: ['id', 'customer', 'items', 'total']
+)]
+class Order extends Model
+{
+    #[OA\Property(
+        description: 'Unique identifier for the order.',
+        type: 'integer',
+        format: 'int64',
+        example: 1,
+        readOnly: true
+    )]
+    public int $id;
+
+    #[OA\Property(
+        description: 'Customer information.',
+        type: 'object',
+        properties: [
+            'id' => new OA\Property(type: 'integer', example: 1),
+            'name' => new OA\Property(type: 'string', example: 'John Doe'),
+            'email' => new OA\Property(type: 'string', format: 'email', example: 'john@example.com')
+        ]
+    )]
+    public array $customer;
+
+    #[OA\Property(
+        description: 'Shipping address.',
+        type: 'object',
+        properties: [
+            'street' => new OA\Property(type: 'string', example: '123 Main St'),
+            'city' => new OA\Property(type: 'string', example: 'New York'),
+            'state' => new OA\Property(type: 'string', example: 'NY'),
+            'zip' => new OA\Property(type: 'string', example: '10001'),
+            'country' => new OA\Property(type: 'string', example: 'USA')
+        ]
+    )]
+    public array $shipping_address;
+
+    #[OA\Property(
+        description: 'Billing address.',
+        type: 'object',
+        properties: [
+            'street' => new OA\Property(type: 'string', example: '123 Main St'),
+            'city' => new OA\Property(type: 'string', example: 'New York'),
+            'state' => new OA\Property(type: 'string', example: 'NY'),
+            'zip' => new OA\Property(type: 'string', example: '10001'),
+            'country' => new OA\Property(type: 'string', example: 'USA')
+        ]
+    )]
+    public array $billing_address;
+
+    #[OA\Property(
+        description: 'Order items.',
+        type: 'array',
+        items: new OA\Items(
+            type: 'object',
+            properties: [
+                'product_id' => new OA\Property(type: 'integer', example: 1),
+                'name' => new OA\Property(type: 'string', example: 'Smartphone XYZ'),
+                'quantity' => new OA\Property(type: 'integer', example: 1),
+                'price' => new OA\Property(type: 'number', format: 'float', example: 999.99),
+                'subtotal' => new OA\Property(type: 'number', format: 'float', example: 999.99)
+            ]
+        )
+    )]
+    public array $items;
+
+    #[OA\Property(
+        description: 'Order total in USD.',
+        type: 'number',
+        format: 'float',
+        example: 1099.99
+    )]
+    public float $total;
+
+    #[OA\Property(
+        description: 'Order status.',
+        type: 'string',
+        enum: ['pending', 'processing', 'shipped', 'delivered', 'cancelled'],
+        example: 'pending'
+    )]
+    public string $status;
+
+    #[OA\Property(
+        description: 'Payment information.',
+        type: 'object',
+        properties: [
+            'method' => new OA\Property(type: 'string', example: 'credit_card'),
+            'transaction_id' => new OA\Property(type: 'string', example: 'txn_123456789'),
+            'status' => new OA\Property(type: 'string', enum: ['pending', 'completed', 'failed'], example: 'completed')
+        ]
+    )]
+    public array $payment;
+
+    #[OA\Property(
+        description: 'When the order was created.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $created_at;
+
+    #[OA\Property(
+        description: 'When the order was last updated.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $updated_at;
+}
+```
+
+## Model with dot notation for nested properties
+
+You can also use dot notation for nested properties:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'Product',
+    description: 'Represents a product in the store.',
+    required: ['id', 'name', 'price']
+)]
+#[OA\Property(
+    property: 'id',
+    description: 'Unique identifier for the product.',
+    type: 'integer',
+    format: 'int64',
+    example: 1,
+    readOnly: true
+)]
+#[OA\Property(
+    property: 'name',
+    description: 'Name of the product.',
+    type: 'string',
+    example: 'Smartphone XYZ',
+    maxLength: 255
+)]
+#[OA\Property(
+    property: 'price',
+    description: 'Price of the product in USD.',
+    type: 'number',
+    format: 'float',
+    example: 999.99,
+    minimum: 0.01
+)]
+#[OA\Property(
+    property: 'specifications',
+    description: 'Technical specifications of the product.',
+    type: 'object',
+    nullable: true
+)]
+#[OA\Property(property: 'specifications.weight', type: 'string', example: '200g')]
+#[OA\Property(property: 'specifications.dimensions', type: 'string', example: '15 x 7 x 0.8 cm')]
+#[OA\Property(property: 'specifications.color', type: 'string', example: 'Black')]
+#[OA\Property(
+    property: 'images',
+    description: 'Product images.',
+    type: 'array',
+    nullable: true,
+    items: new OA\Items(
+        type: 'object'
+    )
+)]
+#[OA\Property(property: 'images.url', type: 'string', format: 'uri', example: 'https://example.com/images/product1.jpg')]
+#[OA\Property(property: 'images.is_primary', type: 'boolean', example: true)]
+class Product extends Model
+{
+    protected $fillable = [
+        'name',
+        'price',
+        'specifications',
+        'images',
+    ];
+
+    protected $casts = [
+        'price' => 'float',
+        'specifications' => 'array',
+        'images' => 'array',
+    ];
+}
+```
+
+## Model with enum support
+
+Here's an example of a model with enum support:
+
+```php
+<?php
+
+namespace App\Enums;
+
+enum UserStatus: string
+{
+    case ACTIVE = 'active';
+    case INACTIVE = 'inactive';
+    case SUSPENDED = 'suspended';
+}
+```
+
+```php
+<?php
+
+namespace App\Models;
+
+use App\Enums\UserStatus;
+use Illuminate\Database\Eloquent\Model;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'User',
+    description: 'Represents a user in the system.',
+    required: ['id', 'name', 'email', 'status']
+)]
+class User extends Model
+{
+    #[OA\Property(
+        description: 'Unique identifier for the user.',
+        type: 'integer',
+        format: 'int64',
+        example: 1,
+        readOnly: true
+    )]
+    public int $id;
+
+    #[OA\Property(
+        description: 'Full name of the user.',
+        type: 'string',
+        example: 'John Doe',
+        maxLength: 255
+    )]
+    public string $name;
+
+    #[OA\Property(
+        description: 'Email address of the user.',
+        type: 'string',
+        format: 'email',
+        example: 'john@example.com',
+        maxLength: 255
+    )]
+    public string $email;
+
+    #[OA\Property(
+        description: 'Status of the user.',
+        type: 'string',
+        enum: UserStatus::class,
+        example: 'active'
+    )]
+    public UserStatus $status;
+
+    #[OA\Property(
+        description: 'When the user was created.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $created_at;
+
+    #[OA\Property(
+        description: 'When the user was last updated.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $updated_at;
+}
+```
+
+## Model with relationships
+
+Here's an example of a model with relationships:
+
+```php
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use LaravelOpenApi\Attributes as OA;
+
+#[OA\Schema(
+    title: 'Task',
+    description: 'Represents a task in the system.',
+    required: ['id', 'title', 'user_id']
+)]
+class Task extends Model
+{
+    #[OA\Property(
+        description: 'Unique identifier for the task.',
+        type: 'integer',
+        format: 'int64',
+        example: 1,
+        readOnly: true
+    )]
+    public int $id;
+
+    #[OA\Property(
+        description: 'Title of the task.',
+        type: 'string',
+        example: 'Complete project documentation',
+        maxLength: 255
+    )]
+    public string $title;
+
+    #[OA\Property(
+        description: 'Description of the task.',
+        type: 'string',
+        example: 'Write comprehensive documentation for the project',
+        nullable: true
+    )]
+    public ?string $description;
+
+    #[OA\Property(
+        description: 'ID of the user assigned to the task.',
+        type: 'integer',
+        format: 'int64',
+        example: 1
+    )]
+    public int $user_id;
+
+    #[OA\Property(
+        description: 'User assigned to the task.',
+        type: 'object',
+        ref: User::class
+    )]
+    public User $user;
+
+    #[OA\Property(
+        description: 'Status of the task.',
+        type: 'string',
+        enum: ['pending', 'in_progress', 'completed', 'cancelled'],
+        example: 'pending'
+    )]
+    public string $status;
+
+    #[OA\Property(
+        description: 'Due date of the task.',
+        type: 'string',
+        format: 'date',
+        example: '2023-12-31',
+        nullable: true
+    )]
+    public ?string $due_date;
+
+    #[OA\Property(
+        description: 'When the task was created.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $created_at;
+
+    #[OA\Property(
+        description: 'When the task was last updated.',
+        type: 'string',
+        format: 'date-time',
+        example: '2023-01-01T12:00:00Z',
+        readOnly: true
+    )]
+    public string $updated_at;
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+}
+```
+
+These examples demonstrate how to document various types of models using Laravel OpenAPI attributes. You can adapt these examples to fit your specific data model needs.

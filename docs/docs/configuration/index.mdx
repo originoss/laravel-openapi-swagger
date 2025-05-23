@@ -1,0 +1,187 @@
+# Configuration
+
+Laravel OpenAPI provides a flexible configuration system that allows you to customize various aspects of your API documentation. This guide explains all available configuration options and how to use them effectively.
+
+## Configuration File
+
+After publishing the configuration file using `php artisan vendor:publish --tag=openapi-config`, you'll find a `config/openapi.php` file in your project with the following options:
+
+## Basic Configuration
+
+### OpenAPI Version
+
+```php
+'openapi_version' => '3.0.0',
+```
+
+This setting defines which version of the OpenAPI specification to use. The package currently supports OpenAPI 3.0.0.
+
+### Base Path
+
+```php
+'base_path' => '/api',
+```
+
+This setting defines the base path for your API. All documented endpoints will be prefixed with this path in the generated specification.
+
+## API Information
+
+```php
+'info' => [
+    'title' => env('APP_NAME', 'Laravel') . ' API',
+    'version' => '1.0.0',
+    'description' => 'API Documentation',
+    'terms_of_service' => null,
+    'contact' => [
+        'name' => null,
+        'url' => null,
+        'email' => null,
+    ],
+    'license' => [
+        'name' => null,
+        'url' => null,
+    ],
+],
+```
+
+These settings define the general information about your API that appears in the OpenAPI specification and Swagger UI:
+
+- `title`: The name of your API
+- `version`: The version of your API (not the OpenAPI specification version)
+- `description`: A description of your API
+- `terms_of_service`: URL to the terms of service for your API
+- `contact`: Contact information for the API
+- `license`: License information for the API
+
+## Servers
+
+```php
+'servers' => [
+    [
+        'url' => env('APP_URL', 'http://localhost'),
+        'description' => 'Local Development Server',
+    ],
+],
+```
+
+This section defines the servers where your API is available. You can define multiple servers, such as development, staging, and production environments.
+
+## Output Settings
+
+```php
+'output' => [
+    'format' => 'json', // 'json' or 'yaml'
+    'filename' => 'openapi', // Without extension
+    'directory' => storage_path('app/openapi'),
+],
+```
+
+These settings control how the OpenAPI specification is generated:
+
+- `format`: The output format for the specification, either `json` or `yaml`
+- `filename`: The filename for the generated specification (without extension)
+- `directory`: The directory where the specification will be saved
+
+## Swagger UI Routes
+
+```php
+'routes' => [
+    'enabled' => true,
+    'prefix' => 'api/documentation',
+    'middleware' => ['web'],
+],
+```
+
+These settings control the built-in Swagger UI:
+
+- `enabled`: Whether to enable the Swagger UI routes
+- `prefix`: The URL prefix for the Swagger UI
+- `middleware`: The middleware to apply to the Swagger UI routes
+
+## Scan Settings
+
+```php
+'scan' => [
+    'controllers' => [
+        app_path('Http/Controllers'),
+    ],
+    'models' => [
+        app_path('Models'),
+    ],
+],
+```
+
+These settings define which directories to scan for annotated classes:
+
+- `controllers`: Directories containing controller classes with endpoint annotations
+- `models`: Directories containing model classes with schema annotations
+
+You can add multiple directories to each section if your project structure requires it.
+
+## Security Definitions
+
+```php
+'security' => [
+    'schemes' => [
+        // Example Bearer token configuration
+        'bearerAuth' => [
+            'type' => 'http',
+            'scheme' => 'bearer',
+            'bearerFormat' => 'JWT',
+        ],
+    ],
+    'default' => ['bearerAuth'],
+],
+```
+
+This optional section allows you to define security schemes for your API. The example above configures a Bearer token authentication scheme.
+
+## Advanced Configuration
+
+### Custom Attributes Path
+
+```php
+'custom_attributes_path' => app_path('OpenApi/Attributes'),
+```
+
+This optional setting allows you to specify a directory for custom attributes that extend the base attributes provided by the package.
+
+### Cache Settings
+
+```php
+'cache' => [
+    'enabled' => false,
+    'duration' => 60 * 60 * 24, // 24 hours
+],
+```
+
+These settings control caching of the generated OpenAPI specification:
+
+- `enabled`: Whether to enable caching
+- `duration`: The cache duration in seconds
+
+## Environment-Specific Configuration
+
+You can use Laravel's environment-specific configuration to customize the OpenAPI settings for different environments. For example, you might want to disable the Swagger UI routes in production:
+
+```php
+'routes' => [
+    'enabled' => env('APP_ENV') !== 'production',
+    'prefix' => 'api/documentation',
+    'middleware' => ['web'],
+],
+```
+
+Or use different server definitions for different environments:
+
+```php
+'servers' => [
+    env('APP_ENV') === 'production' 
+        ? ['url' => 'https://api.example.com', 'description' => 'Production Server']
+        : ['url' => env('APP_URL', 'http://localhost'), 'description' => 'Development Server'],
+],
+```
+
+## Next Steps
+
+Now that you understand how to configure Laravel OpenAPI, proceed to the [Usage](/usage) section to learn how to document your API endpoints and models.
