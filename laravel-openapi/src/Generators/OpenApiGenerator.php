@@ -408,29 +408,62 @@ class OpenApiGenerator
             }
             
             // Handle constructor named parameters
-            $args = (new \ReflectionClass($schema))->getConstructor()->getParameters();
-            foreach ($args as $arg) {
-                $argName = $arg->getName();
-                if ($argName === 'properties') {
-                    // This is a special case for handling properties passed as a named parameter
-                    // We need to extract the properties from the constructor arguments
-                    try {
-                        $constructorArgs = (new \ReflectionObject($schema))->getConstructor()->getParameters();
-                        foreach ($constructorArgs as $cArg) {
-                            if ($cArg->getName() === 'properties' && isset($cArg->getAttributes()[0])) {
-                                $propValue = $cArg->getAttributes()[0]->getArguments()[0] ?? null;
-                                if (is_array($propValue) && !empty($propValue)) {
-                                    $result['properties'] = [];
-                                    foreach ($propValue as $prop) {
+            if ($reflection->hasMethod('__construct')) {
+                $constructor = $reflection->getMethod('__construct');
+                if ($constructor->getNumberOfParameters() > 0) {
+                    $args = $constructor->getParameters();
+                    foreach ($args as $arg) {
+                        $argName = $arg->getName();
+                        if ($argName === 'properties') {
+                            // This is a special case for handling properties passed as a named parameter
+                            // We need to extract the properties from the constructor arguments
+                            try {
+                                // Get the actual value passed to the constructor
+                                $propertiesValue = null;
+                                
+                                // Try to get the properties from the schema instance
+                                $reflectionObject = new \ReflectionObject($schema);
+                                $constructorArgs = $reflectionObject->getConstructor()->getParameters();
+                                
+                                // First, try to access the properties directly from the schema object
+                                if (isset($schema->properties) && is_array($schema->properties) && !empty($schema->properties)) {
+                                    if (!isset($result['properties'])) {
+                                        $result['properties'] = [];
+                                    }
+                                    
+                                    foreach ($schema->properties as $prop) {
                                         if ($prop instanceof \LaravelOpenApi\Attributes\Property) {
                                             $result['properties'][$prop->property] = $this->processProperty($prop);
                                         }
                                     }
                                 }
+                                
+                                // If we couldn't get properties directly, try to extract them from constructor arguments
+                                if (empty($result['properties'])) {
+                                    foreach ($constructorArgs as $cArg) {
+                                        if ($cArg->getName() === 'properties') {
+                                            $attributes = $cArg->getAttributes();
+                                            if (!empty($attributes)) {
+                                                $propValue = $attributes[0]->getArguments()[0] ?? null;
+                                                if (is_array($propValue) && !empty($propValue)) {
+                                                    if (!isset($result['properties'])) {
+                                                        $result['properties'] = [];
+                                                    }
+                                                    
+                                                    foreach ($propValue as $prop) {
+                                                        if ($prop instanceof \LaravelOpenApi\Attributes\Property) {
+                                                            $result['properties'][$prop->property] = $this->processProperty($prop);
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                // Ignore reflection errors
                             }
                         }
-                    } catch (\Exception $e) {
-                        // Ignore reflection errors
                     }
                 }
             }
@@ -457,41 +490,78 @@ class OpenApiGenerator
         }
         
         $result = [];
+        
+        // Add type if available (required field)
         if ($property->type !== null) {
             $result['type'] = $property->type;
         }
         
-        // Add additional property attributes
-        $reflection = new \ReflectionClass($property);
-        $properties = $reflection->getProperties(\ReflectionProperty::IS_PUBLIC);
+        // Add description if available
+        if (!empty($property->description)) {
+            $result['description'] = $property->description;
+        }
         
-        foreach ($properties as $prop) {
-            $name = $prop->getName();
-            $value = $prop->getValue($property);
-            
-            // Skip the property name, type, and ref as they're already processed
-            if ($value !== null && $name !== 'property' && $name !== 'type' && $name !== 'ref') {
-                if ($name === 'items' && $value instanceof \LaravelOpenApi\Attributes\Items) {
-                    // Process items for array types
-                    $result['items'] = $this->processItems($value);
-                } else if ($name === 'enum' && !empty($value)) {
-                    // Handle enum specially
-                    $result['enum'] = $value;
-                } else if ($name === 'readOnly' && $value !== null) {
-                    $result['readOnly'] = $value;
-                } else if ($name === 'writeOnly' && $value !== null) {
-                    $result['writeOnly'] = $value;
-                } else if ($name === 'properties' && !empty($value)) {
-                    // Process nested properties for object types
-                    $result['properties'] = [];
-                    
-                    foreach ($value as $nestedProperty) {
-                        if ($nestedProperty instanceof \LaravelOpenApi\Attributes\Property) {
-                            $result['properties'][$nestedProperty->property] = $this->processProperty($nestedProperty);
-                        }
-                    }
-                } else if ($name !== 'properties') {
-                    $result[$name] = $value;
+        // Add format if available
+        if (!empty($property->format)) {
+            $result['format'] = $property->format;
+        }
+        
+        // Add example if available
+        if ($property->example !== null) {
+            $result['example'] = $property->example;
+        }
+        
+        // Only add non-empty arrays
+        if (!empty($property->enum)) {
+            $result['enum'] = $property->enum;
+        }
+        
+        // Add constraints if they exist
+        if ($property->minLength !== null) {
+            $result['minLength'] = $property->minLength;
+        }
+        
+        if ($property->maxLength !== null) {
+            $result['maxLength'] = $property->maxLength;
+        }
+        
+        if ($property->minimum !== null) {
+            $result['minimum'] = $property->minimum;
+        }
+        
+        if ($property->maximum !== null) {
+            $result['maximum'] = $property->maximum;
+        }
+        
+        // Add boolean flags only if they're true (since false is default)
+        if ($property->nullable === true) {
+            $result['nullable'] = true;
+        }
+        
+        if ($property->readOnly === true) {
+            $result['readOnly'] = true;
+        }
+        
+        if ($property->writeOnly === true) {
+            $result['writeOnly'] = true;
+        }
+        
+        // Add default value if it exists
+        if ($property->default !== null) {
+            $result['default'] = $property->default;
+        }
+        
+        // Process items for array types
+        if ($property->type === 'array' && $property->items !== null) {
+            $result['items'] = $this->processItems($property->items);
+        }
+        
+        // Process nested properties for object types
+        if (!empty($property->properties)) {
+            $result['properties'] = [];
+            foreach ($property->properties as $nestedProperty) {
+                if ($nestedProperty instanceof \LaravelOpenApi\Attributes\Property) {
+                    $result['properties'][$nestedProperty->property] = $this->processProperty($nestedProperty);
                 }
             }
         }
@@ -514,22 +584,43 @@ class OpenApiGenerator
         
         $result = [];
         
-        // Add items attributes
-        $reflection = new \ReflectionClass($items);
-        $properties = $reflection->getProperties(\ReflectionProperty::IS_PUBLIC);
+        // Add type if available
+        if (!empty($items->type)) {
+            $result['type'] = $items->type;
+        }
         
-        foreach ($properties as $property) {
-            $name = $property->getName();
-            $value = $property->getValue($items);
-            
-            if ($value !== null && $name !== 'ref') {
-                // Handle enum specially
-                if ($name === 'enum' && !empty($value)) {
-                    $result['enum'] = $value;
-                } else {
-                    $result[$name] = $value;
-                }
-            }
+        // Add format if available
+        if (!empty($items->format)) {
+            $result['format'] = $items->format;
+        }
+        
+        // Add example if available
+        if ($items->example !== null) {
+            $result['example'] = $items->example;
+        }
+        
+        // Only add non-empty arrays
+        if (!empty($items->enum)) {
+            $result['enum'] = $items->enum;
+        }
+        
+        // Add constraints if they exist
+        if ($items->minimum !== null) {
+            $result['minimum'] = $items->minimum;
+        }
+        
+        if ($items->maximum !== null) {
+            $result['maximum'] = $items->maximum;
+        }
+        
+        // Add nullable flag if true
+        if ($items->nullable === true) {
+            $result['nullable'] = true;
+        }
+        
+        // Add default value if it exists
+        if ($items->default !== null) {
+            $result['default'] = $items->default;
         }
         
         return $result;
@@ -600,498 +691,50 @@ class OpenApiGenerator
             }
         }
         
-        // Generate summary and description from controller and method names only if not already set
-        if (!isset($operationObject['summary']) && !isset($operationObject['description']) && $routeInfo->controller && $routeInfo->controllerMethod) {
-            // Extract controller name without namespace and 'Controller' suffix
-            $controllerName = class_basename($routeInfo->controller);
-            $controllerName = str_replace('Controller', '', $controllerName);
-            
-            // Format controller name for readability (e.g., 'UserProfile' -> 'User Profile')
-            $controllerName = preg_replace('/(?<!^)[A-Z]/', ' $0', $controllerName);
-            
-            // Format method name for readability
-            $methodName = $routeInfo->controllerMethod;
-            if ($methodName === '__invoke') {
-                $methodName = $method; // Use HTTP method if it's an invokable controller
+        // Set summary if not already set
+        if (!isset($operationObject['summary'])) {
+            // Generate summary from route name or URI
+            if ($routeInfo->name) {
+                $operationObject['summary'] = ucfirst(str_replace(['.', '-', '_'], ' ', $routeInfo->name));
             } else {
-                $methodName = preg_replace('/(?<!^)[A-Z]/', ' $0', $methodName);
-            }
-            
-            // Default summary and description
-            $operationObject['summary'] = ucfirst($methodName) . ' ' . strtolower($controllerName);
-            $operationObject['description'] = 'Endpoint for ' . strtolower($methodName) . ' operation on ' . strtolower($controllerName) . ' resource.';
-        } else if (!isset($operationObject['summary']) && !isset($operationObject['description'])) {
-            // Fallback if controller or method is not available and no summary/description set
-            $operationObject['summary'] = ucfirst($method) . ' ' . $uri;
-            $operationObject['description'] = 'Endpoint for ' . $uri;
-        }
-        
-        // Add controller tags only if not already set
-        if (!isset($operationObject['tags'])) {
-            if (!empty($controllerTags)) {
-                $operationObject['tags'] = $controllerTags;
-            } else if ($routeInfo->controller) {
-                // Generate tag from controller name if no explicit tags are available
-                $controllerName = class_basename($routeInfo->controller);
-                $controllerName = str_replace('Controller', '', $controllerName);
-                // Format for readability and pluralize
-                $controllerName = preg_replace('/(?<!^)[A-Z]/', ' $0', $controllerName);
-                $controllerName = trim($controllerName) . 's';
-                $operationObject['tags'] = [$controllerName];
+                $operationObject['summary'] = ucfirst($method) . ' ' . $uri;
             }
         }
         
-        // Auto-discover parameters from route URI
-        $this->autoDiscoverParameters($operationObject, $routeInfo);
-        
-        // Auto-discover request body for POST, PUT, PATCH methods
-        if (in_array(strtoupper($method), ['POST', 'PUT', 'PATCH'])) {
-            $this->autoDiscoverRequestBody($operationObject, $routeInfo);
-        }
-        
-        // Auto-discover responses based on method and route info
-        $this->autoDiscoverResponses($operationObject, $method, $routeInfo);
-    }
-    
-    /**
-     * Auto-discover parameters from route URI and constraints
-     *
-     * @param array $operationObject The operation object to populate
-     * @param RouteInfo $routeInfo Route information
-     * @return void
-     */
-    private function autoDiscoverParameters(array &$operationObject, $routeInfo): void
-    {
-        $parameters = [];
-        
-        // Process path parameters from URI
-        foreach ($routeInfo->parameters as $paramName) {
-            $parameter = [
-                'name' => $paramName,
-                'in' => 'path',
-                'required' => true, // Path parameters are always required
-                'description' => 'The ' . str_replace('_', ' ', $paramName) . ' parameter',
-                'schema' => ['type' => 'string'] // Default to string type
-            ];
-            
-            // Check for route constraints to determine parameter type
-            if (!empty($routeInfo->wheres) && isset($routeInfo->wheres[$paramName])) {
-                $constraint = $routeInfo->wheres[$paramName];
-                
-                // Determine type from constraint pattern
-                if ($constraint === '\d+' || $constraint === '[0-9]+') {
-                    $parameter['schema'] = ['type' => 'integer'];
-                } elseif (str_contains($constraint, '[0-9]') || str_contains($constraint, '\d')) {
-                    $parameter['schema'] = ['type' => 'string', 'pattern' => $constraint];
-                } elseif ($constraint === '[A-Za-z]+') {
-                    $parameter['schema'] = ['type' => 'string', 'pattern' => $constraint];
-                } elseif ($constraint === '[\w-]+') {
-                    $parameter['schema'] = ['type' => 'string', 'pattern' => $constraint];
-                } elseif (str_contains($constraint, 'uuid')) {
-                    $parameter['schema'] = ['type' => 'string', 'format' => 'uuid'];
-                } else {
-                    $parameter['schema'] = ['type' => 'string', 'pattern' => $constraint];
-                }
-            }
-            
-            // Add to parameters array
-            $parameters[] = $parameter;
-        }
-        
-        // Add common query parameters based on controller method
-        if ($routeInfo->controllerMethod === 'index') {
-            // Add pagination parameters for index methods
-            $parameters[] = [
-                'name' => 'page',
-                'in' => 'query',
-                'description' => 'Page number for pagination',
-                'required' => false,
-                'schema' => ['type' => 'integer', 'default' => 1]
-            ];
-            
-            $parameters[] = [
-                'name' => 'per_page',
-                'in' => 'query',
-                'description' => 'Number of items per page',
-                'required' => false,
-                'schema' => ['type' => 'integer', 'default' => 15]
-            ];
-            
-            // Add sorting parameters
-            $parameters[] = [
-                'name' => 'sort_by',
-                'in' => 'query',
-                'description' => 'Field to sort by',
-                'required' => false,
-                'schema' => ['type' => 'string']
-            ];
-            
-            $parameters[] = [
-                'name' => 'sort_direction',
-                'in' => 'query',
-                'description' => 'Direction to sort (asc or desc)',
-                'required' => false,
-                'schema' => ['type' => 'string', 'enum' => ['asc', 'desc'], 'default' => 'asc']
-            ];
-        }
-        
-        // Add parameters to operation object if any were discovered
-        if (!empty($parameters)) {
-            $operationObject['parameters'] = $parameters;
+        // Set tags if not already set
+        if (!isset($operationObject['tags']) && !empty($controllerTags)) {
+            $operationObject['tags'] = $controllerTags;
         }
     }
     
     /**
-     * Auto-discover request body for write operations
+     * Build tags from discovered routes
      *
-     * @param array $operationObject The operation object to populate
-     * @param RouteInfo $routeInfo Route information
-     * @return void
+     * @param Collection $routes
+     * @return array
      */
-    private function autoDiscoverRequestBody(array &$operationObject, $routeInfo): void
-    {
-        // Only add request body for controllers with identifiable resource name
-        if (!$routeInfo->controller) {
-            return;
-        }
-        
-        // Extract resource name from controller
-        $resourceName = class_basename($routeInfo->controller);
-        $resourceName = str_replace('Controller', '', $resourceName);
-        $resourceName = preg_replace('/(?<!^)[A-Z]/', ' $0', $resourceName);
-        $resourceName = trim(strtolower($resourceName));
-        
-        // Create basic request body
-        $requestBody = [
-            'description' => ucfirst($resourceName) . ' information',
-            'required' => true,
-            'content' => [
-                'application/json' => [
-                    'schema' => [
-                        'type' => 'object',
-                        'properties' => [
-                            // Add some common properties based on resource name
-                            'name' => ['type' => 'string', 'description' => ucfirst($resourceName) . ' name'],
-                            'description' => ['type' => 'string', 'description' => ucfirst($resourceName) . ' description'],
-                        ]
-                    ]
-                ]
-            ]
-        ];
-        
-        // Add method-specific properties
-        if ($routeInfo->controllerMethod === 'store') {
-            $requestBody['description'] = 'Create a new ' . $resourceName;
-        } elseif ($routeInfo->controllerMethod === 'update') {
-            $requestBody['description'] = 'Update an existing ' . $resourceName;
-            $requestBody['required'] = false; // Updates might be partial
-        }
-        
-        $operationObject['requestBody'] = $requestBody;
-    }
-    
-    /**
-     * Auto-discover responses based on HTTP method and controller information
-     *
-     * @param array $operationObject The operation object to populate
-     * @param string $method HTTP method
-     * @param RouteInfo|null $routeInfo Route information (optional)
-     * @return void
-     */
-    private function autoDiscoverResponses(array &$operationObject, string $method, $routeInfo = null): void
-    {
-        $responses = [];
-        $method = strtoupper($method);
-        
-        // Extract resource name from controller if available
-        $resourceName = '';
-        $resourceSchema = null;
-        $isPaginated = false;
-        
-        if ($routeInfo && $routeInfo->controller) {
-            // Extract resource name from controller
-            $resourceName = class_basename($routeInfo->controller);
-            $resourceName = str_replace('Controller', '', $resourceName);
-            
-            // Check if it's an index method (likely to return paginated results)
-            if ($routeInfo->controllerMethod === 'index') {
-                $isPaginated = true;
-            }
-            
-            // Try to determine if there's a corresponding model for this resource
-            $modelName = rtrim($resourceName, 's'); // Simple singularization
-            $potentialModelClass = 'App\\Models\\' . $modelName;
-            
-            // Check if the model exists
-            if (class_exists($potentialModelClass)) {
-                // We found a matching model, use it for schema reference
-                $resourceSchema = ['$ref' => '#/components/schemas/' . $modelName];
-            } else {
-                // No matching model found, create a generic schema
-                $resourceSchema = $this->createGenericResourceSchema($resourceName);
-            }
-        }
-        
-        // Default response for all methods
-        $responses['default'] = [
-            'description' => 'Unexpected error',
-            'content' => [
-                'application/json' => [
-                    'schema' => [
-                        'type' => 'object',
-                        'properties' => [
-                            'message' => ['type' => 'string', 'example' => 'An unexpected error occurred']
-                        ]
-                    ]
-                ]
-            ]
-        ];
-        
-        // Method-specific success responses
-        switch ($method) {
-            case 'GET':
-                if ($isPaginated) {
-                    // Paginated collection response
-                    $responses['200'] = [
-                        'description' => 'A paginated list of resources',
-                        'content' => [
-                            'application/json' => [
-                                'schema' => [
-                                    'type' => 'object',
-                                    'properties' => [
-                                        'data' => [
-                                            'type' => 'array',
-                                            'items' => $resourceSchema ?: ['type' => 'object']
-                                        ],
-                                        'links' => [
-                                            'type' => 'object',
-                                            'properties' => [
-                                                'first' => ['type' => 'string', 'format' => 'uri'],
-                                                'last' => ['type' => 'string', 'format' => 'uri'],
-                                                'prev' => ['type' => 'string', 'format' => 'uri', 'nullable' => true],
-                                                'next' => ['type' => 'string', 'format' => 'uri', 'nullable' => true]
-                                            ]
-                                        ],
-                                        'meta' => [
-                                            'type' => 'object',
-                                            'properties' => [
-                                                'current_page' => ['type' => 'integer', 'example' => 1],
-                                                'from' => ['type' => 'integer', 'example' => 1],
-                                                'last_page' => ['type' => 'integer', 'example' => 5],
-                                                'path' => ['type' => 'string', 'format' => 'uri'],
-                                                'per_page' => ['type' => 'integer', 'example' => 15],
-                                                'to' => ['type' => 'integer', 'example' => 15],
-                                                'total' => ['type' => 'integer', 'example' => 75]
-                                            ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ];
-                } else if (strpos($routeInfo->uri, '{') !== false) {
-                    // Single resource response (has path parameter)
-                    $responses['200'] = [
-                        'description' => 'The requested resource',
-                        'content' => [
-                            'application/json' => [
-                                'schema' => $resourceSchema ?: ['type' => 'object']
-                            ]
-                        ]
-                    ];
-                    
-                    $responses['404'] = [
-                        'description' => 'Resource not found',
-                        'content' => [
-                            'application/json' => [
-                                'schema' => [
-                                    'type' => 'object',
-                                    'properties' => [
-                                        'message' => ['type' => 'string', 'example' => 'Resource not found']
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ];
-                } else {
-                    // Generic GET response
-                    $responses['200'] = [
-                        'description' => 'Successful response',
-                        'content' => [
-                            'application/json' => [
-                                'schema' => ['type' => 'object']
-                            ]
-                        ]
-                    ];
-                }
-                break;
-                
-            case 'POST':
-                $responses['201'] = [
-                    'description' => 'Resource created successfully',
-                    'content' => [
-                        'application/json' => [
-                            'schema' => $resourceSchema ?: [
-                                'type' => 'object',
-                                'properties' => [
-                                    'id' => ['type' => 'integer', 'example' => 1],
-                                    'created_at' => ['type' => 'string', 'format' => 'date-time'],
-                                    'updated_at' => ['type' => 'string', 'format' => 'date-time']
-                                ]
-                            ]
-                        ]
-                    ]
-                ];
-                
-                $responses['422'] = [
-                    'description' => 'Validation error',
-                    'content' => [
-                        'application/json' => [
-                            'schema' => [
-                                'type' => 'object',
-                                'properties' => [
-                                    'message' => ['type' => 'string', 'example' => 'The given data was invalid.'],
-                                    'errors' => [
-                                        'type' => 'object',
-                                        'additionalProperties' => [
-                                            'type' => 'array',
-                                            'items' => ['type' => 'string']
-                                        ],
-                                        'example' => [
-                                            'name' => ['The name field is required.'],
-                                            'email' => ['The email must be a valid email address.']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ];
-                break;
-                
-            case 'PUT':
-            case 'PATCH':
-                $responses['200'] = [
-                    'description' => 'Resource updated successfully',
-                    'content' => [
-                        'application/json' => [
-                            'schema' => $resourceSchema ?: [
-                                'type' => 'object',
-                                'properties' => [
-                                    'id' => ['type' => 'integer', 'example' => 1],
-                                    'updated_at' => ['type' => 'string', 'format' => 'date-time']
-                                ]
-                            ]
-                        ]
-                    ]
-                ];
-                
-                $responses['404'] = [
-                    'description' => 'Resource not found',
-                    'content' => [
-                        'application/json' => [
-                            'schema' => [
-                                'type' => 'object',
-                                'properties' => [
-                                    'message' => ['type' => 'string', 'example' => 'Resource not found']
-                                ]
-                            ]
-                        ]
-                    ]
-                ];
-                
-                $responses['422'] = [
-                    'description' => 'Validation error',
-                    'content' => [
-                        'application/json' => [
-                            'schema' => [
-                                'type' => 'object',
-                                'properties' => [
-                                    'message' => ['type' => 'string', 'example' => 'The given data was invalid.'],
-                                    'errors' => [
-                                        'type' => 'object',
-                                        'additionalProperties' => [
-                                            'type' => 'array',
-                                            'items' => ['type' => 'string']
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    ]
-                ];
-                break;
-                
-            case 'DELETE':
-                $responses['204'] = [
-                    'description' => 'Resource deleted successfully'
-                ];
-                
-                $responses['404'] = [
-                    'description' => 'Resource not found',
-                    'content' => [
-                        'application/json' => [
-                            'schema' => [
-                                'type' => 'object',
-                                'properties' => [
-                                    'message' => ['type' => 'string', 'example' => 'Resource not found']
-                                ]
-                            ]
-                        ]
-                    ]
-                ];
-                break;
-        }
-        
-        $operationObject['responses'] = $responses;
-    }
-    
-    /**
-     * Create a generic schema for a resource based on its name
-     *
-     * @param string $resourceName The name of the resource
-     * @return array The schema definition
-     */
-    private function createGenericResourceSchema(string $resourceName): array
-    {
-        // Singularize the resource name
-        $singularName = rtrim($resourceName, 's');
-        
-        // Create a generic schema with common fields
-        return [
-            'type' => 'object',
-            'properties' => [
-                'id' => ['type' => 'integer', 'example' => 1],
-                'name' => ['type' => 'string', 'example' => ucfirst($singularName) . ' name'],
-                'description' => ['type' => 'string', 'example' => 'Description of the ' . strtolower($singularName)],
-                'created_at' => ['type' => 'string', 'format' => 'date-time'],
-                'updated_at' => ['type' => 'string', 'format' => 'date-time']
-            ]
-        ];
-    }
-
     private function buildTags(Collection $routes): array
     {
         $tags = [];
         $tagNames = [];
         
-        // Extract tags from controller attributes (ApiTag)
+        // Extract tags from ApiTag attributes
         foreach ($routes as $routeInfo) {
-            // Process controller attributes (ApiTag)
             if (!empty($routeInfo->controllerAttributes)) {
                 foreach ($routeInfo->controllerAttributes as $attribute) {
                     if ($attribute instanceof \LaravelOpenApi\Attributes\ApiTag) {
-                        // Avoid duplicate tags
-                        if (!in_array($attribute->name, $tagNames)) {
-                            $tagNames[] = $attribute->name;
-                            $tag = ['name' => $attribute->name];
+                        $tagName = $attribute->name;
+                        
+                        // Only add unique tags
+                        if (!in_array($tagName, $tagNames)) {
+                            $tagNames[] = $tagName;
+                            
+                            $tag = [
+                                'name' => $tagName,
+                            ];
                             
                             if ($attribute->description) {
                                 $tag['description'] = $attribute->description;
-                            }
-                            
-                            if ($attribute->externalDocs) {
-                                $tag['externalDocs'] = ['url' => $attribute->externalDocs];
                             }
                             
                             $tags[] = $tag;
@@ -1099,19 +742,14 @@ class OpenApiGenerator
                     }
                 }
             }
-            
-            // Also collect tags from route operation attributes
-            if (!empty($routeInfo->attributes)) {
-                foreach ($routeInfo->attributes as $attribute) {
-                    if ($attribute instanceof \LaravelOpenApi\Attributes\Operation && !empty($attribute->tags)) {
-                        foreach ($attribute->tags as $tagName) {
-                            // Only add tags that don't already exist and aren't just a string reference
-                            if (!in_array($tagName, $tagNames) && is_array($tagName) && isset($tagName['name'])) {
-                                $tagNames[] = $tagName['name'];
-                                $tags[] = $tagName;
-                            }
-                        }
-                    }
+        }
+        
+        // Add tags from config if any
+        if (isset($this->config['tags']) && is_array($this->config['tags'])) {
+            foreach ($this->config['tags'] as $configTag) {
+                if (isset($configTag['name']) && !in_array($configTag['name'], $tagNames)) {
+                    $tagNames[] = $configTag['name'];
+                    $tags[] = $configTag;
                 }
             }
         }

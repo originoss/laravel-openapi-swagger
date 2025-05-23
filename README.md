@@ -255,48 +255,116 @@ Once you have annotated your controllers and models, you can generate the OpenAP
 php artisan openapi:generate
 ```
 
-By default, this will create an `openapi.json` file in your project's `public` directory. You can customize the output path, format (JSON or YAML), and other generation options in the `config/openapi.php` file. Refer to the configuration file for more details on available options.
-
-*(Further details on CLI commands and advanced configuration will be added later.)*
+By default, this will create an `openapi.json` file in your project's `public` directory. You can customize the output path, format, and other generation options through command-line parameters or in the `config/openapi.php` file.
 
 ### Output Formats (JSON/YAML)
 
-By default, the `openapi:generate` command outputs in JSON format. You can also generate the specification in YAML:
+The package supports both JSON and YAML formats for your OpenAPI specification. Each format has its advantages:
+
+- **JSON**: More compact, better performance, widely supported by all tools
+- **YAML**: More human-readable, supports comments, easier to maintain manually
+
+#### Generating YAML Format
+
+By default, the `openapi:generate` command outputs in JSON format. To generate in YAML format:
 
 ```bash
 php artisan openapi:generate --format=yaml
 ```
 
-If you haven't already, you might need to install the `symfony/yaml` package:
+This will create an `openapi.yaml` file in your project's `public` directory.
+
+#### YAML Requirements
+
+To use YAML format, you need to install the `symfony/yaml` package:
 
 ```bash
 composer require symfony/yaml
 ```
 
-The output filename will automatically use the correct extension (e.g., `openapi.yaml`) if not specified in the `--output` option.
+#### Customizing Output Path
+
+You can specify a custom output path:
+
+```bash
+php artisan openapi:generate --output=docs/api-spec --format=yaml
+```
+
+The output filename will automatically use the correct extension (e.g., `.json` or `.yaml`) based on the specified format.
 
 ## Viewing API Documentation with Swagger UI
 
-This library includes a built-in Swagger UI to render your OpenAPI specification.
+This library includes a built-in Swagger UI to render your OpenAPI specification. The UI now supports both JSON and YAML formats with an easy-to-use format selector.
 
-- **Accessing the UI**: By default, you can access it at the `/api-docs` route in your application.
-- **Configuration**:
-    - **Enable/Disable**: You can enable or disable the UI route via the `openapi.ui.enabled` setting in your `config/openapi.php` file.
-    - **Route Path**: The path for the UI (e.g., `/api-docs`) can be changed using the `openapi.ui.route` configuration key.
-    - **Spec URL**: The UI loads the JSON version of your spec by default (e.g., from `/openapi.json`). The route name used for this is configurable via `openapi.ui.spec_route_name_json`.
-    - **HTML Title**: The title of the Swagger UI HTML page can be set with `openapi.ui.title`.
+### Key Features
 
-Refer to the `ui` section in `config/openapi.php` for all available options.
+- **Format Switching**: Toggle between JSON and YAML formats directly in the UI
+- **Persistent Format Selection**: Your format choice is saved in the URL hash, so it persists across page refreshes
+- **Responsive Design**: Works well on both desktop and mobile devices
+- **Latest Swagger UI**: Uses the latest version of Swagger UI for the best experience
+
+### Accessing the UI
+
+By default, you can access the Swagger UI at the `/api-docs` route in your application.
+
+### Configuration Options
+
+The Swagger UI can be extensively configured through the `ui` section in your `config/openapi.php` file:
+
+```php
+'ui' => [
+    // Enable or disable the UI route
+    'enabled' => env('OPENAPI_UI_ENABLED', true),
+    
+    // Path for the Swagger UI page
+    'route' => env('OPENAPI_UI_ROUTE', '/api-docs'),
+    
+    // Route name for the UI page
+    'route_name' => env('OPENAPI_UI_ROUTE_NAME', 'openapi.ui'),
+    
+    // Title for the HTML page
+    'title' => env('OPENAPI_UI_TITLE', 'OpenAPI Documentation UI'),
+    
+    // Default format to display (json or yaml)
+    'default_format' => env('OPENAPI_UI_DEFAULT_FORMAT', 'json'),
+    
+    // Route name for the JSON spec
+    'spec_route_name_json' => env('OPENAPI_UI_SPEC_ROUTE_NAME_JSON', 'openapi.json'),
+    
+    // Additional Swagger UI configuration options
+    'config' => [
+        'docExpansion' => env('OPENAPI_UI_DOC_EXPANSION', 'list'),
+        'deepLinking' => true,
+        'persistAuthorization' => true,
+        // Add any other Swagger UI options here
+    ],
+],
+```
 
 ### Customizing the Swagger UI View
 
-If you need to customize the appearance or behavior of Swagger UI, you can publish its Blade view:
+If you need to customize the appearance or behavior of Swagger UI beyond the configuration options, you can publish its Blade view:
 
 ```bash
 php artisan vendor:publish --tag=openapi-views
 ```
 
-This will copy the `swagger-ui.blade.php` view to `resources/views/vendor/openapi/`. You can then modify this file as needed. For example, you might want to update Swagger UI versions, change default configurations, or adjust the HTML layout.
+This will copy the `swagger-ui.blade.php` view to `resources/views/vendor/openapi/`. You can then modify this file as needed to:
+
+- Update Swagger UI versions
+- Change the layout or styling
+- Add custom JavaScript functionality
+- Integrate with your application's theme
+- Add authentication for the documentation
+
+### URL Parameters
+
+The Swagger UI supports the following URL parameters:
+
+- `#format=yaml` - Switch to YAML format
+- `#format=json` - Switch to JSON format (default)
+
+For example: `https://your-app.com/api-docs#format=yaml`
 
 # Credits
 - Boosttrapped by [Jules](https://jules.google)

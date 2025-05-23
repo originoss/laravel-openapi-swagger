@@ -3,10 +3,10 @@
 namespace LaravelOpenApi\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response; // For YAML content type
+use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\File; // Or native file_get_contents
-// use Symfony\Component\Yaml\Yaml; // If YAML support is desired - keep commented for now
+use Illuminate\Support\Facades\File;
+use Symfony\Component\Yaml\Yaml;
 
 class SpecController extends Controller
 {
@@ -41,7 +41,7 @@ class SpecController extends Controller
         return response()->json($decoded); // Serve the decoded and re-encoded JSON
     }
 
-    public function yaml() // Return type hint : Response (Illuminate\Http\Response)
+    public function yaml(): Response
     {
         $filePath = $this->getSpecPath('yaml');
 
@@ -50,36 +50,51 @@ class SpecController extends Controller
                     ->header('Content-Type', 'text/plain');
         }
         
-        // For YAML, just return the content directly with the correct content type.
-        // No need to parse and re-dump usually, unless validation is desired.
+        // Get the YAML content
         $content = File::get($filePath);
 
-        // Basic check if it might be YAML (optional)
-        // if (!class_exists(Yaml::class)) {
-        //     return response('Cannot serve YAML: symfony/yaml package not found.', 500)->header('Content-Type', 'text/plain');
-        // }
-        // try {
-        //     Yaml::parse($content); // Try to parse to validate
-        // } catch (\Symfony\Component\Yaml\Exception\ParseException $e) {
-        //     return response('Invalid YAML format: ' . $e->getMessage(), 500)->header('Content-Type', 'text/plain');
-        // }
+        // Validate the YAML if the Symfony YAML component is available
+        if (!class_exists(Yaml::class)) {
+            // Still serve the content, but log a warning that validation is skipped
+            if (app()->environment('local', 'development', 'testing')) {
+                logger()->warning('Cannot validate YAML: symfony/yaml package not found. Install it with: composer require symfony/yaml');
+            }
+        } else {
+            try {
+                // Try to parse to validate
+                Yaml::parse($content); 
+            } catch (\Symfony\Component\Yaml\Exception\ParseException $e) {
+                return response('Invalid YAML format: ' . $e->getMessage(), 500)
+                        ->header('Content-Type', 'text/plain');
+            }
+        }
 
-        return response($content, 200)->header('Content-Type', 'application/yaml'); 
-        // Or 'text/yaml', 'application/x-yaml'. 'application/yaml' is common.
+        // Return the YAML content with the appropriate content type
+        return response($content, 200)
+                ->header('Content-Type', 'application/yaml')
+                ->header('Access-Control-Allow-Origin', '*'); // Allow cross-origin requests for Swagger UI
     }
 
-    public function ui() // Return type hint : \Illuminate\Contracts\View\View
+    public function ui(): \Illuminate\Contracts\View\View
     {
-        $viewName = config('openapi.ui.view', 'openapi::swagger-ui'); // Use package view namespace
+        $viewName = config('openapi.ui.view', 'openapi::swagger-ui');
+        
+        // Get configuration for both JSON and YAML formats
         $specUrlJson = route(config('openapi.ui.spec_route_name_json', 'openapi.json'));
-
-        // Allow passing additional Swagger UI config from openapi.php if needed in the future
-        // $swaggerUiConfig = config('openapi.ui.config', []);
+        $specUrlYaml = route(config('openapi.paths.yaml_route_name', 'openapi.yaml'));
+        
+        // Get preferred format from config
+        $defaultFormat = config('openapi.ui.default_format', 'json');
+        
+        // Allow passing additional Swagger UI config from openapi.php
+        $swaggerUiConfig = config('openapi.ui.config', []);
 
         return view($viewName, [
             'title' => config('openapi.ui.title', 'OpenAPI Documentation'),
-            'specUrlJson' => $specUrlJson, // Pass the JSON spec URL to the view
-            // 'swaggerUiConfig' => $swaggerUiConfig, // For future advanced config
+            'specUrlJson' => $specUrlJson,
+            'specUrlYaml' => $specUrlYaml,
+            'defaultFormat' => $defaultFormat,
+            'swaggerUiConfig' => $swaggerUiConfig,
         ]);
     }
 }

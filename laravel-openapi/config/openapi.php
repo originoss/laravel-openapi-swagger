@@ -82,8 +82,20 @@ return [
         // Configuration for the Swagger UI view itself:
         'title' => env('OPENAPI_UI_TITLE', 'OpenAPI Documentation UI'), // Title for the HTML page
         
+        // Default format to display in the UI (json or yaml)
+        'default_format' => env('OPENAPI_UI_DEFAULT_FORMAT', 'json'),
+        
         // Specifies the route *name* for the JSON spec, used by the view to generate the URL.
         // This should match one of the names defined in 'paths'.
-        'spec_route_name_json' => env('OPENAPI_UI_SPEC_ROUTE_NAME_JSON', 'openapi.json'), 
+        'spec_route_name_json' => env('OPENAPI_UI_SPEC_ROUTE_NAME_JSON', 'openapi.json'),
+        
+        // Additional configuration options for Swagger UI
+        'config' => [
+            // Any additional Swagger UI configuration options can be added here
+            // See https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
+            'docExpansion' => env('OPENAPI_UI_DOC_EXPANSION', 'list'), // 'list', 'full', or 'none'
+            'deepLinking' => true,
+            'persistAuthorization' => true,
+        ],
     ],
 ];

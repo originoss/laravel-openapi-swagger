@@ -61,10 +61,10 @@ return [
 
     'paths' => [
         'json_route_path' => env('OPENAPI_JSON_ROUTE_PATH', '/openapi.json'),
-        'json_route_name' => env('OPENAPI_JSON_ROUTE_NAME', 'openapi.json'), // Add this
+        'json_route_name' => env('OPENAPI_JSON_ROUTE_NAME', 'openapi.json'), 
 
         'yaml_route_path' => env('OPENAPI_YAML_ROUTE_PATH', '/openapi.yaml'),
-        'yaml_route_name' => env('OPENAPI_YAML_ROUTE_NAME', 'openapi.yaml'), // Add this
+        'yaml_route_name' => env('OPENAPI_YAML_ROUTE_NAME', 'openapi.yaml'), 
         
         // Output path for the openapi:generate command.
         // This should align with what SpecController expects.

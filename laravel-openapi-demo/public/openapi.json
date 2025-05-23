@@ -81,41 +81,21 @@
                                     "properties": {
                                         "data": {
                                             "type": "array",
-                                            "examples": [],
-                                            "nullable": false,
-                                            "enum": [],
                                             "items": {
                                                 "$ref": "#/components/schemas/Task"
-                                            },
-                                            "required": false
+                                            }
                                         },
                                         "current_page": {
-                                            "type": "integer",
-                                            "examples": [],
-                                            "nullable": false,
-                                            "enum": [],
-                                            "required": false
+                                            "type": "integer"
                                         },
                                         "last_page": {
-                                            "type": "integer",
-                                            "examples": [],
-                                            "nullable": false,
-                                            "enum": [],
-                                            "required": false
+                                            "type": "integer"
                                         },
                                         "per_page": {
-                                            "type": "integer",
-                                            "examples": [],
-                                            "nullable": false,
-                                            "enum": [],
-                                            "required": false
+                                            "type": "integer"
                                         },
                                         "total": {
-                                            "type": "integer",
-                                            "examples": [],
-                                            "nullable": false,
-                                            "enum": [],
-                                            "required": false
+                                            "type": "integer"
                                         }
                                     }
                                 }
@@ -327,11 +307,7 @@
                                     "enum": [],
                                     "properties": {
                                         "unnamed": {
-                                            "type": "integer",
-                                            "examples": [],
-                                            "nullable": false,
-                                            "enum": [],
-                                            "required": false
+                                            "type": "integer"
                                         }
                                     }
                                 }
@@ -826,10 +802,7 @@
         },
         {
             "name": "Users",
-            "description": "User management endpoints",
-            "externalDocs": {
-                "url": "https://example.com/docs/users"
-            }
+            "description": "User management endpoints"
         },
         {
             "name": "Products",
