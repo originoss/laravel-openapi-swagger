@@ -1,0 +1,151 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Laravel OpenAPI Demo API",
+        "version": "1.0.0",
+        "description": null,
+        "contact": {
+            "name": null,
+            "email": null,
+            "url": null
+        }
+    },
+    "servers": [
+        {
+            "url": "http://localhost",
+            "description": "Development server"
+        }
+    ],
+    "paths": {
+        "/api-docs": {
+            "get": {
+                "parameters": [],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response. To be updated."
+                    }
+                },
+                "summary": "Endpoint for /api-docs",
+                "operationId": "get_apidocs"
+            }
+        },
+        "/api/tasks": {
+            "get": {
+                "parameters": [],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response. To be updated."
+                    }
+                },
+                "summary": "Endpoint for /api/tasks",
+                "operationId": "get_api_tasks"
+            },
+            "post": {
+                "parameters": [],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response. To be updated."
+                    }
+                },
+                "summary": "Endpoint for /api/tasks",
+                "operationId": "post_api_tasks"
+            }
+        },
+        "/api/tasks/{task}": {
+            "get": {
+                "parameters": [],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response. To be updated."
+                    }
+                },
+                "summary": "Endpoint for /api/tasks/{task}",
+                "operationId": "get_api_tasks_task"
+            },
+            "put": {
+                "parameters": [],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response. To be updated."
+                    }
+                },
+                "summary": "Endpoint for /api/tasks/{task}",
+                "operationId": "put_api_tasks_task"
+            },
+            "delete": {
+                "parameters": [],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response. To be updated."
+                    }
+                },
+                "summary": "Endpoint for /api/tasks/{task}",
+                "operationId": "delete_api_tasks_task"
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "User": {
+                "type": "object",
+                "title": "User",
+                "description": "User model definition.",
+                "properties": [],
+                "required": []
+            },
+            "Task": {
+                "type": "object",
+                "title": "Task",
+                "description": "Represents a task item in the to-do list.",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "Title or name of the task.",
+                        "example": "Buy groceries",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Detailed description of the task.",
+                        "example": "Milk, Eggs, Bread, and Cheese",
+                        "nullable": true
+                    },
+                    "status": {
+                        "type": "string",
+                        "description": "Current status of the task.",
+                        "example": "pending",
+                        "default": "pending",
+                        "enum": [
+                            "pending",
+                            "in-progress",
+                            "completed"
+                        ]
+                    },
+                    "due_date": {
+                        "type": "string",
+                        "description": "Due date for the task.",
+                        "format": "date",
+                        "example": "2024-12-31",
+                        "nullable": true
+                    }
+                },
+                "required": [
+                    "id",
+                    "title",
+                    "status"
+                ]
+            }
+        },
+        "securitySchemes": [],
+        "parameters": [],
+        "responses": []
+    },
+    "security": [],
+    "tags": []
+}

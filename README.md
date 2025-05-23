@@ -113,8 +113,6 @@ class UserController extends Controller
 }
 ```
 
-*(Next: Annotating Models)*
-
 ### Annotating Models
 
 Models (typically Eloquent models, but can be any PHP class) are annotated to define their structure for request/response bodies.
@@ -195,8 +193,6 @@ class User extends Model
 }
 ```
 
-*(Next: Generating the Specification)*
-
 ## Generating the Specification
 
 Once you have annotated your controllers and models, you can generate the OpenAPI specification using the following Artisan command:
@@ -229,10 +225,10 @@ The output filename will automatically use the correct extension (e.g., `openapi
 
 This library includes a built-in Swagger UI to render your OpenAPI specification.
 
-- **Accessing the UI**: By default, you can access it at the `/openapi/ui` route in your application.
+- **Accessing the UI**: By default, you can access it at the `/api-docs` route in your application.
 - **Configuration**:
     - **Enable/Disable**: You can enable or disable the UI route via the `openapi.ui.enabled` setting in your `config/openapi.php` file.
-    - **Route Path**: The path for the UI (e.g., `/openapi/ui`) can be changed using the `openapi.ui.route` configuration key.
+    - **Route Path**: The path for the UI (e.g., `/api-docs`) can be changed using the `openapi.ui.route` configuration key.
     - **Spec URL**: The UI loads the JSON version of your spec by default (e.g., from `/openapi.json`). The route name used for this is configurable via `openapi.ui.spec_route_name_json`.
     - **HTML Title**: The title of the Swagger UI HTML page can be set with `openapi.ui.title`.
 
