@@ -58,26 +58,22 @@ use LaravelOpenApi\Attributes as OA;
     property: 'specifications',
     description: 'Technical specifications of the product.',
     type: 'object',
-    nullable: true,
-    properties: [
-        new OA\Property(property: 'weight', type: 'string', example: '200g'),
-        new OA\Property(property: 'dimensions', type: 'string', example: '15 x 7 x 0.8 cm'),
-        new OA\Property(property: 'color', type: 'string', example: 'Black')
-    ]
+    nullable: true
 )]
+#[OA\Property(property: 'specifications.weight', type: 'string', example: '200g')]
+#[OA\Property(property: 'specifications.dimensions', type: 'string', example: '15 x 7 x 0.8 cm')]
+#[OA\Property(property: 'specifications.color', type: 'string', example: 'Black')]
 #[OA\Property(
     property: 'images',
     description: 'Product images.',
     type: 'array',
     nullable: true,
     items: new OA\Items(
-        type: 'object',
-        properties: [
-            new OA\Property(property: 'url', type: 'string', format: 'uri', example: 'https://example.com/images/product1.jpg'),
-            new OA\Property(property: 'is_primary', type: 'boolean', example: true)
-        ]
+        type: 'object'
     )
 )]
+#[OA\Property(property: 'images.url', type: 'string', format: 'uri', example: 'https://example.com/images/product1.jpg')]
+#[OA\Property(property: 'images.is_primary', type: 'boolean', example: true)]
 #[OA\Property(
     property: 'created_at',
     description: 'Timestamp when the product was created.',

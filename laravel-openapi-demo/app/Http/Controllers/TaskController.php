@@ -15,8 +15,6 @@ use LaravelOpenApi\Attributes as OA;
 class TaskController extends Controller
 {
     #[OA\Operation(
-        path: '/tasks', 
-        method: 'get',
         tags: ['Tasks'],
         summary: 'List all tasks',
         description: 'Retrieves a paginated list of tasks, optionally filtered by status.'
@@ -26,14 +24,14 @@ class TaskController extends Controller
         in: 'query',
         description: 'Page number for pagination.',
         required: false,
-        schema: new OA\Schema(type: 'integer', example: 1, default: 1)
+        schema: new OA\Schema(type: 'integer', examples: [1], default: 1)
     )]
     #[OA\Parameter(
         name: 'per_page',
         in: 'query',
         description: 'Number of tasks per page.',
         required: false,
-        schema: new OA\Schema(type: 'integer', example: 15, default: 15)
+        schema: new OA\Schema(type: 'integer', examples: [15], default: 15)
     )]
     #[OA\Parameter(
         name: 'status',
@@ -51,7 +49,7 @@ class TaskController extends Controller
                 schema: new OA\Schema(
                     type: 'object',
                     properties: [
-                        new OA\Property(property: 'data', type: 'array', items: new OA\Items(['ref' => '#/components/schemas/Task'])),
+                        new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: Task::class)),
                         new OA\Property(property: 'current_page', type: 'integer'),
                         new OA\Property(property: 'last_page', type: 'integer'),
                         new OA\Property(property: 'per_page', type: 'integer'),
@@ -71,8 +69,6 @@ class TaskController extends Controller
     }
 
     #[OA\Operation(
-        path: '/tasks', // Included for demo clarity
-        method: 'post', // Included for demo clarity
         tags: ['Tasks'],
         summary: 'Create a new task',
         description: 'Adds a new task to the to-do list.'
@@ -81,14 +77,14 @@ class TaskController extends Controller
         description: 'Task object to be created. `id`, `created_at`, `updated_at` are ignored.',
         required: true,
         content: [
-            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(['ref' => '#/components/schemas/Task']))
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: Task::class))
         ]
     )]
     #[OA\Response(
         response: 201,
         description: 'Task created successfully.',
         content: [
-            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(['ref' => '#/components/schemas/Task']))
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: Task::class))
         ]
     )]
     #[OA\Response(response: 422, description: 'Validation error.')]
@@ -111,8 +107,6 @@ class TaskController extends Controller
     }
 
     #[OA\Operation(
-        path: '/tasks/{id}', // Included for demo clarity
-        method: 'get',      // Included for demo clarity
         tags: ['Tasks'],
         summary: 'Get a specific task',
         description: 'Retrieves a single task by its ID.'
@@ -122,13 +116,13 @@ class TaskController extends Controller
         in: 'path',
         description: 'ID of the task to retrieve.',
         required: true,
-        schema: new OA\Schema(type: 'integer', format: 'int64', example: 1)
+        schema: new OA\Schema(type: 'integer', format: 'int64', examples: [1])
     )]
     #[OA\Response(
         response: 200,
         description: 'The requested task.',
         content: [
-            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(['ref' => '#/components/schemas/Task']))
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: Task::class))
         ]
     )]
     #[OA\Response(response: 404, description: 'Task not found.')]
@@ -143,8 +137,6 @@ class TaskController extends Controller
     }
 
     #[OA\Operation(
-        path: '/tasks/{id}', // Included for demo clarity
-        method: 'put',      // Included for demo clarity
         tags: ['Tasks'],
         summary: 'Update an existing task',
         description: 'Updates an existing task by its ID.'
@@ -154,20 +146,20 @@ class TaskController extends Controller
         in: 'path',
         description: 'ID of the task to update.',
         required: true,
-        schema: new OA\Schema(type: 'integer', format: 'int64', example: 1)
+        schema: new OA\Schema(type: 'integer', format: 'int64', examples: [1])
     )]
     #[OA\RequestBody(
         description: 'Task object with updated fields. `id`, `created_at`, `updated_at` are ignored. All fields are optional for partial updates.',
         required: true,
         content: [
-            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(['ref' => '#/components/schemas/Task']))
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: Task::class))
         ]
     )]
     #[OA\Response(
         response: 200,
         description: 'Task updated successfully.',
         content: [
-            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(['ref' => '#/components/schemas/Task']))
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: Task::class))
         ]
     )]
     #[OA\Response(response: 404, description: 'Task not found.')]
@@ -196,8 +188,6 @@ class TaskController extends Controller
     }
 
     #[OA\Operation(
-        path: '/tasks/{id}', // Included for demo clarity
-        method: 'delete',   // Included for demo clarity
         tags: ['Tasks'],
         summary: 'Delete a task',
         description: 'Deletes a task by its ID.'
@@ -207,7 +197,7 @@ class TaskController extends Controller
         in: 'path',
         description: 'ID of the task to delete.',
         required: true,
-        schema: new OA\Schema(type: 'integer', format: 'int64', example: 1)
+        schema: new OA\Schema(type: 'integer', examples: [1])
     )]
     #[OA\Response(response: 204, description: 'Task deleted successfully (No Content).')]
     #[OA\Response(response: 404, description: 'Task not found.')]

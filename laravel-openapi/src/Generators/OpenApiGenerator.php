@@ -7,6 +7,7 @@ use LaravelOpenApi\Discovery\ModelDiscovery;
 use LaravelOpenApi\Schema\SchemaBuilder;
 use Illuminate\Support\Collection;
 use LaravelOpenApi\Attributes\Operation as OperationAttribute;
+use LaravelOpenApi\Utilities\SchemaResolver;
 
 class OpenApiGenerator
 {
@@ -74,8 +75,7 @@ class OpenApiGenerator
                 }
             }
         } catch (\Throwable $e) {
-            // If url() helper fails (e.g. outside Laravel context or during early boot), stick to static fallback.
-            // Optionally log this event: error_log('url() helper failed: ' . $e->getMessage());
+            error_log('url() helper failed: ' . $e->getMessage());
         }
         
         return [
@@ -124,9 +124,14 @@ class OpenApiGenerator
             }
 
             if ($operationAttribute) {
+                // Always prioritize explicit attributes from the Operation annotation
                 if ($operationAttribute->summary !== null) $operationObject['summary'] = $operationAttribute->summary;
                 if ($operationAttribute->description !== null) $operationObject['description'] = $operationAttribute->description;
-                if ($operationAttribute->operationId !== null) $operationObject['operationId'] = $operationAttribute->operationId;
+                
+                // Always use operationId from the Operation attribute if provided
+                if ($operationAttribute->operationId !== null) {
+                    $operationObject['operationId'] = $operationAttribute->operationId;
+                }
                 
                 // Merge controller tags with operation tags
                 $operationTags = !empty($operationAttribute->tags) ? $operationAttribute->tags : [];
@@ -141,8 +146,11 @@ class OpenApiGenerator
                 if (!empty($operationAttribute->security)) {
                     $operationObject['security'] = $operationAttribute->security;
                 }
+                
+                // Auto-discover any missing details, but don't override what's explicitly set in the annotation
+                $this->autoDiscoverOperation($operationObject, $routeInfo, $uri, $method, $controllerTags);
             } else {
-                // Auto-discovery: Generate basic operation details from route information
+                // No Operation attribute found, use full auto-discovery
                 $this->autoDiscoverOperation($operationObject, $routeInfo, $uri, $method, $controllerTags);
             }
             
@@ -354,7 +362,8 @@ class OpenApiGenerator
         if (is_array($schema)) {
             // Handle schema reference
             if (isset($schema['ref'])) {
-                return ['$ref' => $schema['ref']];
+                $resolvedRef = SchemaResolver::resolve($schema['ref']);
+                return ['$ref' => $resolvedRef];
             }
             
             return $schema;
@@ -362,6 +371,12 @@ class OpenApiGenerator
         
         if ($schema instanceof \LaravelOpenApi\Attributes\Schema) {
             $result = [];
+            
+            // Handle reference first if provided
+            if ($schema->ref !== null) {
+                $resolvedRef = SchemaResolver::resolve($schema->ref);
+                return ['$ref' => $resolvedRef];
+            }
             
             // Extract schema properties
             $reflection = new \ReflectionClass($schema);
@@ -371,8 +386,13 @@ class OpenApiGenerator
                 $name = $property->getName();
                 $value = $property->getValue($schema);
                 
-                if ($value !== null && $name !== 'properties') {
-                    $result[$name] = $value;
+                if ($value !== null && $name !== 'properties' && $name !== 'ref') {
+                    // Handle enum specially
+                    if ($name === 'enum' && !empty($value)) {
+                        $result['enum'] = $value;
+                    } else {
+                        $result[$name] = $value;
+                    }
                 }
             }
             
@@ -383,6 +403,34 @@ class OpenApiGenerator
                 foreach ($schema->properties as $property) {
                     if ($property instanceof \LaravelOpenApi\Attributes\Property) {
                         $result['properties'][$property->property] = $this->processProperty($property);
+                    }
+                }
+            }
+            
+            // Handle constructor named parameters
+            $args = (new \ReflectionClass($schema))->getConstructor()->getParameters();
+            foreach ($args as $arg) {
+                $argName = $arg->getName();
+                if ($argName === 'properties') {
+                    // This is a special case for handling properties passed as a named parameter
+                    // We need to extract the properties from the constructor arguments
+                    try {
+                        $constructorArgs = (new \ReflectionObject($schema))->getConstructor()->getParameters();
+                        foreach ($constructorArgs as $cArg) {
+                            if ($cArg->getName() === 'properties' && isset($cArg->getAttributes()[0])) {
+                                $propValue = $cArg->getAttributes()[0]->getArguments()[0] ?? null;
+                                if (is_array($propValue) && !empty($propValue)) {
+                                    $result['properties'] = [];
+                                    foreach ($propValue as $prop) {
+                                        if ($prop instanceof \LaravelOpenApi\Attributes\Property) {
+                                            $result['properties'][$prop->property] = $this->processProperty($prop);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        // Ignore reflection errors
                     }
                 }
             }
@@ -402,9 +450,16 @@ class OpenApiGenerator
      */
     private function processProperty(\LaravelOpenApi\Attributes\Property $property): array
     {
-        $result = [
-            'type' => $property->type,
-        ];
+        // Handle reference first if provided
+        if ($property->ref !== null) {
+            $resolvedRef = SchemaResolver::resolve($property->ref);
+            return ['$ref' => $resolvedRef];
+        }
+        
+        $result = [];
+        if ($property->type !== null) {
+            $result['type'] = $property->type;
+        }
         
         // Add additional property attributes
         $reflection = new \ReflectionClass($property);
@@ -414,12 +469,28 @@ class OpenApiGenerator
             $name = $prop->getName();
             $value = $prop->getValue($property);
             
-            // Skip the property name and type as they're already processed
-            if ($value !== null && $name !== 'property' && $name !== 'type') {
+            // Skip the property name, type, and ref as they're already processed
+            if ($value !== null && $name !== 'property' && $name !== 'type' && $name !== 'ref') {
                 if ($name === 'items' && $value instanceof \LaravelOpenApi\Attributes\Items) {
                     // Process items for array types
                     $result['items'] = $this->processItems($value);
-                } else {
+                } else if ($name === 'enum' && !empty($value)) {
+                    // Handle enum specially
+                    $result['enum'] = $value;
+                } else if ($name === 'readOnly' && $value !== null) {
+                    $result['readOnly'] = $value;
+                } else if ($name === 'writeOnly' && $value !== null) {
+                    $result['writeOnly'] = $value;
+                } else if ($name === 'properties' && !empty($value)) {
+                    // Process nested properties for object types
+                    $result['properties'] = [];
+                    
+                    foreach ($value as $nestedProperty) {
+                        if ($nestedProperty instanceof \LaravelOpenApi\Attributes\Property) {
+                            $result['properties'][$nestedProperty->property] = $this->processProperty($nestedProperty);
+                        }
+                    }
+                } else if ($name !== 'properties') {
                     $result[$name] = $value;
                 }
             }
@@ -437,7 +508,8 @@ class OpenApiGenerator
     private function processItems(\LaravelOpenApi\Attributes\Items $items): array
     {
         if (isset($items->ref)) {
-            return ['$ref' => $items->ref];
+            $resolvedRef = SchemaResolver::resolve($items->ref);
+            return ['$ref' => $resolvedRef];
         }
         
         $result = [];
@@ -451,7 +523,12 @@ class OpenApiGenerator
             $value = $property->getValue($items);
             
             if ($value !== null && $name !== 'ref') {
-                $result[$name] = $value;
+                // Handle enum specially
+                if ($name === 'enum' && !empty($value)) {
+                    $result['enum'] = $value;
+                } else {
+                    $result[$name] = $value;
+                }
             }
         }
         
@@ -471,13 +548,26 @@ class OpenApiGenerator
         if (is_array($content)) {
             foreach ($content as $mediaType) {
                 if ($mediaType instanceof \LaravelOpenApi\Attributes\MediaType) {
-                    $result[$mediaType->mediaType] = [
-                        'schema' => $this->processSchema($mediaType->schema),
-                    ];
+                    $result[$mediaType->mediaType] = [];
+                    
+                    // Process schema if provided
+                    if ($mediaType->schema !== null) {
+                        $result[$mediaType->mediaType]['schema'] = $this->processSchema($mediaType->schema);
+                    }
                     
                     // Add examples if provided
                     if (!empty($mediaType->examples)) {
                         $result[$mediaType->mediaType]['examples'] = $mediaType->examples;
+                    }
+                    
+                    // Add example if provided
+                    if ($mediaType->example !== null) {
+                        $result[$mediaType->mediaType]['example'] = $mediaType->example;
+                    }
+                    
+                    // Add encoding if provided
+                    if (!empty($mediaType->encoding)) {
+                        $result[$mediaType->mediaType]['encoding'] = $mediaType->encoding;
                     }
                 }
             }
@@ -498,17 +588,20 @@ class OpenApiGenerator
      */
     private function autoDiscoverOperation(array &$operationObject, $routeInfo, string $uri, string $method, array $controllerTags): void
     {
-        // Generate operation ID from route name or URI
-        if ($routeInfo->name) {
-            $operationObject['operationId'] = $routeInfo->name;
-        } else {
-            // Generate from URI and method
-            $safeUri = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace(['/', '{', '}'], ['_', '', ''], $uri));
-            $operationObject['operationId'] = $method . $safeUri;
+        // Check if operationId is already set from the Operation attribute
+        if (!isset($operationObject['operationId'])) {
+            // Generate operation ID from route name or URI
+            if ($routeInfo->name) {
+                $operationObject['operationId'] = $routeInfo->name;
+            } else {
+                // Generate from URI and method
+                $safeUri = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace(['/', '{', '}'], ['_', '', ''], $uri));
+                $operationObject['operationId'] = $method . $safeUri;
+            }
         }
         
-        // Generate summary and description from controller and method names
-        if ($routeInfo->controller && $routeInfo->controllerMethod) {
+        // Generate summary and description from controller and method names only if not already set
+        if (!isset($operationObject['summary']) && !isset($operationObject['description']) && $routeInfo->controller && $routeInfo->controllerMethod) {
             // Extract controller name without namespace and 'Controller' suffix
             $controllerName = class_basename($routeInfo->controller);
             $controllerName = str_replace('Controller', '', $controllerName);
@@ -524,49 +617,28 @@ class OpenApiGenerator
                 $methodName = preg_replace('/(?<!^)[A-Z]/', ' $0', $methodName);
             }
             
-            // Generate summary based on method and controller
-            switch ($methodName) {
-                case 'index':
-                    $operationObject['summary'] = 'List all ' . strtolower($controllerName) . 's';
-                    $operationObject['description'] = 'Returns a list of ' . strtolower($controllerName) . ' resources.';
-                    break;
-                case 'show':
-                    $operationObject['summary'] = 'Get a specific ' . strtolower($controllerName);
-                    $operationObject['description'] = 'Returns a specific ' . strtolower($controllerName) . ' resource.';
-                    break;
-                case 'store':
-                    $operationObject['summary'] = 'Create a new ' . strtolower($controllerName);
-                    $operationObject['description'] = 'Creates a new ' . strtolower($controllerName) . ' resource.';
-                    break;
-                case 'update':
-                    $operationObject['summary'] = 'Update a ' . strtolower($controllerName);
-                    $operationObject['description'] = 'Updates an existing ' . strtolower($controllerName) . ' resource.';
-                    break;
-                case 'destroy':
-                    $operationObject['summary'] = 'Delete a ' . strtolower($controllerName);
-                    $operationObject['description'] = 'Deletes a ' . strtolower($controllerName) . ' resource.';
-                    break;
-                default:
-                    $operationObject['summary'] = ucfirst($methodName) . ' ' . strtolower($controllerName);
-                    $operationObject['description'] = 'Endpoint for ' . strtolower($methodName) . ' operation on ' . strtolower($controllerName) . ' resource.';
-            }
-        } else {
-            // Fallback if controller or method is not available
+            // Default summary and description
+            $operationObject['summary'] = ucfirst($methodName) . ' ' . strtolower($controllerName);
+            $operationObject['description'] = 'Endpoint for ' . strtolower($methodName) . ' operation on ' . strtolower($controllerName) . ' resource.';
+        } else if (!isset($operationObject['summary']) && !isset($operationObject['description'])) {
+            // Fallback if controller or method is not available and no summary/description set
             $operationObject['summary'] = ucfirst($method) . ' ' . $uri;
             $operationObject['description'] = 'Endpoint for ' . $uri;
         }
         
-        // Add controller tags
-        if (!empty($controllerTags)) {
-            $operationObject['tags'] = $controllerTags;
-        } else if ($routeInfo->controller) {
-            // Generate tag from controller name if no explicit tags are available
-            $controllerName = class_basename($routeInfo->controller);
-            $controllerName = str_replace('Controller', '', $controllerName);
-            // Format for readability and pluralize
-            $controllerName = preg_replace('/(?<!^)[A-Z]/', ' $0', $controllerName);
-            $controllerName = trim($controllerName) . 's';
-            $operationObject['tags'] = [$controllerName];
+        // Add controller tags only if not already set
+        if (!isset($operationObject['tags'])) {
+            if (!empty($controllerTags)) {
+                $operationObject['tags'] = $controllerTags;
+            } else if ($routeInfo->controller) {
+                // Generate tag from controller name if no explicit tags are available
+                $controllerName = class_basename($routeInfo->controller);
+                $controllerName = str_replace('Controller', '', $controllerName);
+                // Format for readability and pluralize
+                $controllerName = preg_replace('/(?<!^)[A-Z]/', ' $0', $controllerName);
+                $controllerName = trim($controllerName) . 's';
+                $operationObject['tags'] = [$controllerName];
+            }
         }
         
         // Auto-discover parameters from route URI

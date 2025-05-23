@@ -32,16 +32,8 @@ class RouteDiscovery
         }
         
         // Skip routes from Laravel's internal controllers
-        if (str_starts_with($route->getActionName(), 'Laravel\\')) {
+        if (str_starts_with($route->getActionName(), 'Laravel\\') || str_starts_with($route->getActionName(), 'LaravelOpenApi\\')) {
             return false;
-        }
-        
-        // Skip the Swagger UI route and OpenAPI spec routes
-        if (isset($this->config['ui']) && isset($this->config['ui']['route'])) {
-            $uiRoute = ltrim($this->config['ui']['route'], '/');
-            if ($route->uri() === $uiRoute) {
-                return false;
-            }
         }
         
         // Skip the OpenAPI JSON/YAML routes
@@ -173,17 +165,32 @@ class RouteDiscovery
 
         // Ensure the controller class exists and the method exists on the controller
         if (!class_exists($controllerName) || !method_exists($controllerName, $methodName)) {
-            // Optionally log this situation: e.g., controller class not found or method not found.
-            // error_log("Controller {$controllerName} or method {$methodName} not found for attribute parsing.");
+            error_log("Controller {$controllerName} or method {$methodName} not found for attribute parsing.");
             return [];
         }
 
         try {
             $reflectionMethod = new ReflectionMethod($controllerName, $methodName);
-            return $this->attributeParser->getMethodAttributes($reflectionMethod);
+            
+            // Get all method attributes
+            $attributes = $this->attributeParser->getMethodAttributes($reflectionMethod);
+            
+            // Prioritize Operation attribute if it exists
+            // This ensures that the Operation attribute is properly processed
+            // during OpenAPI generation
+            foreach ($attributes as $key => $attribute) {
+                if ($attribute instanceof \LaravelOpenApi\Attributes\Operation) {
+                    // Move the Operation attribute to the beginning of the array
+                    // to ensure it's processed first
+                    unset($attributes[$key]);
+                    array_unshift($attributes, $attribute);
+                    break;
+                }
+            }
+            
+            return $attributes;
         } catch (\ReflectionException $e) {
-            // Log error or handle if reflection fails (e.g., class or method doesn't exist)
-            // error_log("ReflectionException for {$controllerName}::{$methodName}: " . $e->getMessage());
+            error_log("ReflectionException for {$controllerName}::{$methodName}: " . $e->getMessage());
             return [];
         }
     }
@@ -199,8 +206,7 @@ class RouteDiscovery
             $reflectionClass = new ReflectionClass($controllerName);
             return $this->attributeParser->getClassAttributes($reflectionClass);
         } catch (\ReflectionException $e) {
-            // Log error or handle if reflection fails
-            // error_log("ReflectionException for controller {$controllerName}: " . $e->getMessage());
+            error_log("ReflectionException for controller {$controllerName}: " . $e->getMessage());
             return [];
         }
     }

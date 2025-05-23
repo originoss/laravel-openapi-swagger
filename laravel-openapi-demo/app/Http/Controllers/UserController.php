@@ -16,8 +16,6 @@ use LaravelOpenApi\Attributes as OA;
 class UserController extends Controller
 {
     #[OA\Operation(
-        path: '/api/users',
-        method: 'get',
         summary: 'List all users',
         description: 'Retrieves a paginated list of users.'
     )]
@@ -26,7 +24,7 @@ class UserController extends Controller
         in: 'query',
         description: 'Page number for pagination.',
         required: false,
-        schema: new OA\Schema(type: 'integer', example: 1, default: 1)
+        schema: new OA\Schema(type: 'integer', examples: [1])
     )]
     #[OA\Response(
         response: 200,
@@ -37,11 +35,14 @@ class UserController extends Controller
                 schema: new OA\Schema(
                     type: 'object',
                     properties: [
-                        new OA\Property(property: 'data', type: 'array', items: new OA\Items(['ref' => '#/components/schemas/User'])),
-                        new OA\Property(property: 'current_page', type: 'integer'),
-                        new OA\Property(property: 'last_page', type: 'integer'),
-                        new OA\Property(property: 'per_page', type: 'integer'),
-                        new OA\Property(property: 'total', type: 'integer'),
+                        'data' => new OA\Property(
+                            type: 'array',
+                            items: new OA\Items(ref: User::class)
+                        ),
+                        'current_page' => new OA\Property(type: 'integer'),
+                        'last_page' => new OA\Property(type: 'integer'),
+                        'per_page' => new OA\Property(type: 'integer'),
+                        'total' => new OA\Property(type: 'integer')
                     ]
                 )
             )
@@ -54,8 +55,6 @@ class UserController extends Controller
     }
 
     #[OA\Operation(
-        path: '/api/users/{id}',
-        method: 'get',
         summary: 'Get a specific user',
         description: 'Retrieves a single user by their ID.'
     )]
@@ -64,13 +63,13 @@ class UserController extends Controller
         in: 'path',
         description: 'ID of the user to retrieve.',
         required: true,
-        schema: new OA\Schema(type: 'integer', format: 'int64', example: 1)
+        schema: new OA\Schema(type: 'integer', examples: [1])
     )]
     #[OA\Response(
         response: 200,
         description: 'The requested user.',
         content: [
-            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(['ref' => '#/components/schemas/User']))
+            new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: User::class))
         ]
     )]
     #[OA\Response(response: 404, description: 'User not found.')]

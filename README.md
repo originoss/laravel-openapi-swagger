@@ -9,6 +9,8 @@ A Laravel package for generating OpenAPI (formerly Swagger) specifications from 
 - **No Database Introspection**: The library does **not** connect to your database to infer schema information. Model schemas are derived solely from explicitly annotated `#[Property]` attributes on your model classes.
 - **Explicit is Better**: Only model properties that are explicitly annotated with `#[Property]` will be included in the generated OpenAPI specification.
 - **Laravel Friendly**: Designed to integrate smoothly with Laravel projects, including Artisan commands for spec generation.
+- **Model::class Support**: References to models can use the `Model::class` syntax for better IDE support and refactoring capabilities.
+- **Enum Support**: Full support for PHP enums in your API documentation.
 
 ## Installation
 
@@ -119,6 +121,58 @@ Models (typically Eloquent models, but can be any PHP class) are annotated to de
 
 - `#[LaravelOpenApi\Attributes\Schema(...)]`: Used at the class level to define the overall schema for the model. You can set a `title`, `description`, and a list of `required` properties.
 - `#[LaravelOpenApi\Attributes\Property(...)]`: Used on individual PHP properties to describe them. You specify `type`, `format`, `description`, `example`, `nullable`, `enum`, and other validation constraints. **Only properties explicitly annotated with `#[Property]` will be included in the OpenAPI specification.**
+
+### Using Enums
+
+You can use PHP enums in your API documentation to define valid values for properties:
+
+```php
+<?php
+
+namespace App\Enums;
+
+enum UserStatus: string
+{
+    case ACTIVE = 'active';
+    case INACTIVE = 'inactive';
+    case SUSPENDED = 'suspended';
+}
+```
+
+Then in your model or controller attributes:
+
+```php
+#[OA\Property(
+    property: 'status',
+    type: 'string',
+    description: 'User status',
+    enum: ['active', 'inactive', 'suspended']
+)]
+public string $status;
+```
+
+### Using Model::class Syntax for References
+
+You can use the `Model::class` syntax for references to models, which provides better IDE support and makes refactoring easier:
+
+```php
+// In a controller method
+#[OA\Response(
+    status: 200,
+    description: 'The requested user.',
+    content: [
+        new OA\MediaType(mediaType: 'application/json', schema: new OA\Schema(ref: User::class))
+    ]
+)]
+
+// For array items
+#[OA\Property(
+    property: 'users',
+    type: 'array',
+    items: new OA\Items(ref: User::class)
+)]
+public array $users;
+```
 
 **Example: A simple User model**
 
@@ -243,3 +297,8 @@ php artisan vendor:publish --tag=openapi-views
 ```
 
 This will copy the `swagger-ui.blade.php` view to `resources/views/vendor/openapi/`. You can then modify this file as needed. For example, you might want to update Swagger UI versions, change default configurations, or adjust the HTML layout.
+
+# Credits
+- Boosttrapped by [Jules](https://jules.google)
+- Enhanced by [Claude](https://claude.ai)
+- Orchestrated by [Steve](https://github.com/stevenosse)

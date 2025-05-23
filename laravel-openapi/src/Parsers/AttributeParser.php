@@ -32,8 +32,9 @@ class AttributeParser
                     $attributes[] = $reflectionAttribute->newInstance();
                 }
             } catch (\Throwable $e) {
+                
                 // Optional: Log error or handle specific exceptions if an attribute fails to instantiate
-                // error_log("Failed to instantiate attribute " . $reflectionAttribute->getName() . ": " . $e->getMessage());
+                error_log("Failed to instantiate attribute " . $reflectionAttribute->getName() . ": " . $e->getMessage());
                 // For now, re-throw or handle as per application error policy
                 // For this implementation, we'll silently ignore to match skeleton's leniency
             }
