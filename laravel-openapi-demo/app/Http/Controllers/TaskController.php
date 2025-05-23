@@ -8,12 +8,15 @@ use Illuminate\Http\JsonResponse; // For type hinting response
 use Illuminate\Support\Facades\Validator; // For basic validation
 use LaravelOpenApi\Attributes as OA;
 
-// NOTE: #[OA\Schema(...)] at class level is OMITTED as per instructions.
+#[OA\ApiTag(
+    name: 'Tasks',
+    description: 'Task management endpoints',
+)]
 class TaskController extends Controller
 {
     #[OA\Operation(
-        path: '/tasks', // Included for demo clarity
-        method: 'get',  // Included for demo clarity
+        path: '/tasks', 
+        method: 'get',
         tags: ['Tasks'],
         summary: 'List all tasks',
         description: 'Retrieves a paginated list of tasks, optionally filtered by status.'

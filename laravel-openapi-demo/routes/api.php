@@ -2,7 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\TaskController; // Import TaskController
+use App\Http\Controllers\TaskController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\ProductController;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,3 +23,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 // Routes for the Demo Tasks API
 Route::apiResource('tasks', TaskController::class);
+Route::apiResource('users', UserController::class);
+Route::apiResource('products', ProductController::class);
+

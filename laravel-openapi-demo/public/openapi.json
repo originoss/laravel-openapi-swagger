@@ -12,7 +12,7 @@
     },
     "servers": [
         {
-            "url": "http://localhost",
+            "url": "http://localhost:8000",
             "description": "Development server"
         }
     ],
@@ -23,81 +23,1461 @@
                 "requestBody": null,
                 "responses": {
                     "default": {
-                        "description": "Default response. To be updated."
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Successful response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
-                "summary": "Endpoint for /api-docs",
-                "operationId": "get_apidocs"
+                "operationId": "openapi.ui",
+                "summary": "Ui spec",
+                "description": "Endpoint for ui operation on spec resource.",
+                "tags": [
+                    "Specs"
+                ]
             }
         },
         "/api/tasks": {
             "get": {
-                "parameters": [],
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort by",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_direction",
+                        "in": "query",
+                        "description": "Direction to sort (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "default": "asc"
+                        }
+                    }
+                ],
                 "requestBody": null,
                 "responses": {
                     "default": {
-                        "description": "Default response. To be updated."
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "A paginated list of resources",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/Task"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "prev": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "nullable": true
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "nullable": true
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 75
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                "summary": "Endpoint for /api/tasks",
-                "operationId": "get_api_tasks"
+                "operationId": "tasks.index",
+                "summary": "List all tasks",
+                "description": "Returns a list of task resources.",
+                "tags": [
+                    "Tasks"
+                ]
             },
             "post": {
                 "parameters": [],
-                "requestBody": null,
-                "responses": {
-                    "default": {
-                        "description": "Default response. To be updated."
+                "requestBody": {
+                    "description": "Create a new task",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Task name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Task description"
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                "summary": "Endpoint for /api/tasks",
-                "operationId": "post_api_tasks"
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Resource created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "example": {
+                                                "name": [
+                                                    "The name field is required."
+                                                ],
+                                                "email": [
+                                                    "The email must be a valid email address."
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "tasks.store",
+                "summary": "Create a new task",
+                "description": "Creates a new task resource.",
+                "tags": [
+                    "Tasks"
+                ]
             }
         },
         "/api/tasks/{task}": {
             "get": {
-                "parameters": [],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": null,
                 "responses": {
                     "default": {
-                        "description": "Default response. To be updated."
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "The requested resource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                "summary": "Endpoint for /api/tasks/{task}",
-                "operationId": "get_api_tasks_task"
+                "operationId": "tasks.show",
+                "summary": "Get a specific task",
+                "description": "Returns a specific task resource.",
+                "tags": [
+                    "Tasks"
+                ]
             },
             "put": {
-                "parameters": [],
-                "requestBody": null,
-                "responses": {
-                    "default": {
-                        "description": "Default response. To be updated."
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Update an existing task",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Task name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Task description"
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                "summary": "Endpoint for /api/tasks/{task}",
-                "operationId": "put_api_tasks_task"
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Resource updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Task"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "tasks.update",
+                "summary": "Update a task",
+                "description": "Updates an existing task resource.",
+                "tags": [
+                    "Tasks"
+                ]
             },
             "delete": {
-                "parameters": [],
+                "parameters": [
+                    {
+                        "name": "task",
+                        "in": "path",
+                        "required": true,
+                        "description": "The task parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "requestBody": null,
                 "responses": {
                     "default": {
-                        "description": "Default response. To be updated."
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Resource deleted successfully"
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 },
-                "summary": "Endpoint for /api/tasks/{task}",
-                "operationId": "delete_api_tasks_task"
+                "operationId": "tasks.destroy",
+                "summary": "Delete a task",
+                "description": "Deletes a task resource.",
+                "tags": [
+                    "Tasks"
+                ]
+            }
+        },
+        "/api/users": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number for pagination",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "per_page",
+                        "in": "query",
+                        "description": "Number of items per page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "default": 15
+                        }
+                    },
+                    {
+                        "name": "sort_by",
+                        "in": "query",
+                        "description": "Field to sort by",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort_direction",
+                        "in": "query",
+                        "description": "Direction to sort (asc or desc)",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ],
+                            "default": "asc"
+                        }
+                    }
+                ],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "A paginated list of resources",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/User"
+                                            }
+                                        },
+                                        "links": {
+                                            "type": "object",
+                                            "properties": {
+                                                "first": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "prev": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "nullable": true
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "format": "uri",
+                                                    "nullable": true
+                                                }
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "properties": {
+                                                "current_page": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "from": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "last_page": {
+                                                    "type": "integer",
+                                                    "example": 5
+                                                },
+                                                "path": {
+                                                    "type": "string",
+                                                    "format": "uri"
+                                                },
+                                                "per_page": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "to": {
+                                                    "type": "integer",
+                                                    "example": 15
+                                                },
+                                                "total": {
+                                                    "type": "integer",
+                                                    "example": 75
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "users.index",
+                "summary": "List all users",
+                "description": "Returns a list of user resources.",
+                "tags": [
+                    "Users"
+                ]
+            },
+            "post": {
+                "parameters": [],
+                "requestBody": {
+                    "description": "Create a new user",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "User name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "User description"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Resource created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "example": {
+                                                "name": [
+                                                    "The name field is required."
+                                                ],
+                                                "email": [
+                                                    "The email must be a valid email address."
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "users.store",
+                "summary": "Create a new user",
+                "description": "Creates a new user resource.",
+                "tags": [
+                    "Users"
+                ]
+            }
+        },
+        "/api/users/{user}": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "The requested resource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "users.show",
+                "summary": "Get a specific user",
+                "description": "Returns a specific user resource.",
+                "tags": [
+                    "Users"
+                ]
+            },
+            "put": {
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Update an existing user",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "User name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "User description"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Resource updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/User"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "users.update",
+                "summary": "Update a user",
+                "description": "Updates an existing user resource.",
+                "tags": [
+                    "Users"
+                ]
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "name": "user",
+                        "in": "path",
+                        "required": true,
+                        "description": "The user parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Resource deleted successfully"
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "users.destroy",
+                "summary": "Delete a user",
+                "description": "Deletes a user resource.",
+                "tags": [
+                    "Users"
+                ]
+            }
+        },
+        "/api/products": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "description": "Filter products by category.",
+                        "schema": {
+                            "type": "string",
+                            "required": [],
+                            "examples": []
+                        }
+                    }
+                ],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Default response"
+                    }
+                },
+                "operationId": "products.index",
+                "summary": "List all products",
+                "description": "Returns a list of product resources.",
+                "tags": [
+                    "Products"
+                ]
+            },
+            "post": {
+                "parameters": [],
+                "requestBody": {
+                    "description": "Create a new product",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Product name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Product description"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "201": {
+                        "description": "Resource created successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "example": {
+                                                "name": [
+                                                    "The name field is required."
+                                                ],
+                                                "email": [
+                                                    "The email must be a valid email address."
+                                                ]
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "products.store",
+                "summary": "Create a new product",
+                "description": "Creates a new product resource.",
+                "tags": [
+                    "Products"
+                ]
+            }
+        },
+        "/api/products/{product}": {
+            "get": {
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "description": "The product parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "The requested resource",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "products.show",
+                "summary": "Get a specific product",
+                "description": "Returns a specific product resource.",
+                "tags": [
+                    "Products"
+                ]
+            },
+            "put": {
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "description": "The product parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "description": "Update an existing product",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "description": "Product name"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "description": "Product description"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "200": {
+                        "description": "Resource updated successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Product"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "The given data was invalid."
+                                        },
+                                        "errors": {
+                                            "type": "object",
+                                            "additionalProperties": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "products.update",
+                "summary": "Update a product",
+                "description": "Updates an existing product resource.",
+                "tags": [
+                    "Products"
+                ]
+            },
+            "delete": {
+                "parameters": [
+                    {
+                        "name": "product",
+                        "in": "path",
+                        "required": true,
+                        "description": "The product parameter",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": null,
+                "responses": {
+                    "default": {
+                        "description": "Unexpected error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "An unexpected error occurred"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "204": {
+                        "description": "Resource deleted successfully"
+                    },
+                    "404": {
+                        "description": "Resource not found",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Resource not found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "operationId": "products.destroy",
+                "summary": "Delete a product",
+                "description": "Deletes a product resource.",
+                "tags": [
+                    "Products"
+                ]
             }
         }
     },
     "components": {
         "schemas": {
+            "Product": {
+                "type": "object",
+                "title": "Product",
+                "description": "Represents a product in the store.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name of the product.",
+                        "example": "Smartphone XYZ",
+                        "maxLength": 255
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Detailed description of the product.",
+                        "example": "The latest smartphone with amazing features",
+                        "nullable": true
+                    },
+                    "price": {
+                        "type": "number",
+                        "description": "Price of the product in USD.",
+                        "format": "float",
+                        "example": 999.99,
+                        "minimum": 0.01
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "Category of the product.",
+                        "example": "Electronics",
+                        "nullable": true
+                    },
+                    "in_stock": {
+                        "type": "boolean",
+                        "description": "Whether the product is in stock.",
+                        "example": true,
+                        "default": true
+                    },
+                    "specifications": {
+                        "type": "object",
+                        "description": "Technical specifications of the product.",
+                        "nullable": true,
+                        "properties": {
+                            "weight": {
+                                "type": "string",
+                                "example": "200g"
+                            },
+                            "dimensions": {
+                                "type": "string",
+                                "example": "15 x 7 x 0.8 cm"
+                            },
+                            "color": {
+                                "type": "string",
+                                "example": "Black"
+                            }
+                        }
+                    },
+                    "images": {
+                        "type": "array",
+                        "description": "Images",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "id": {
+                        "type": "integer",
+                        "description": "Unique identifier",
+                        "format": "int64",
+                        "readOnly": true,
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "description": "Created at",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "example": "2023-01-01T12:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "description": "Updated at",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "example": "2023-01-01T12:00:00Z"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "price"
+                ]
+            },
             "User": {
                 "type": "object",
                 "title": "User",
-                "description": "User model definition.",
-                "properties": [],
-                "required": []
+                "description": "Represents a user in the system.",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "Name",
+                        "example": "Example User"
+                    },
+                    "email": {
+                        "type": "string",
+                        "description": "Email",
+                        "example": "user@example.com",
+                        "format": "email"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "description": "Unique identifier",
+                        "format": "int64",
+                        "readOnly": true,
+                        "example": 1
+                    },
+                    "email_verified_at": {
+                        "type": "string",
+                        "description": "Email verified at",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "email"
+                ]
             },
             "Task": {
                 "type": "object",
@@ -106,33 +1486,41 @@
                 "properties": {
                     "title": {
                         "type": "string",
-                        "description": "Title or name of the task.",
-                        "example": "Buy groceries",
-                        "maxLength": 255
+                        "description": "Title"
                     },
                     "description": {
                         "type": "string",
-                        "description": "Detailed description of the task.",
-                        "example": "Milk, Eggs, Bread, and Cheese",
-                        "nullable": true
+                        "description": "Description"
                     },
                     "status": {
                         "type": "string",
-                        "description": "Current status of the task.",
-                        "example": "pending",
-                        "default": "pending",
-                        "enum": [
-                            "pending",
-                            "in-progress",
-                            "completed"
-                        ]
+                        "description": "Status"
                     },
                     "due_date": {
                         "type": "string",
-                        "description": "Due date for the task.",
-                        "format": "date",
-                        "example": "2024-12-31",
-                        "nullable": true
+                        "description": "Due date",
+                        "format": "date"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "description": "Unique identifier",
+                        "format": "int64",
+                        "readOnly": true,
+                        "example": 1
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "description": "Created at",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "example": "2023-01-01T12:00:00Z"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "description": "Updated at",
+                        "format": "date-time",
+                        "readOnly": true,
+                        "example": "2023-01-01T12:00:00Z"
                     }
                 },
                 "required": [
@@ -147,5 +1535,24 @@
         "responses": []
     },
     "security": [],
-    "tags": []
+    "tags": [
+        {
+            "name": "Tasks",
+            "description": "Task management endpoints"
+        },
+        {
+            "name": "Users",
+            "description": "User management endpoints",
+            "externalDocs": {
+                "url": "https://example.com/docs/users"
+            }
+        },
+        {
+            "name": "Products",
+            "description": "Product management endpoints",
+            "externalDocs": {
+                "url": "https://example.com/docs/products"
+            }
+        }
+    ]
 }

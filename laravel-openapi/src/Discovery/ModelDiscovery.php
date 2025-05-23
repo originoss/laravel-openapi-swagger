@@ -103,18 +103,46 @@ class ModelDiscovery
         /** @var Model $instance */
         $instance = app($modelClass);
 
+        // Extract class-level attributes
         $classAttributes = $this->attributeParser->getClassAttributes($reflectionClass);
         
+        // Extract property-level attributes
         $propertyAttributes = [];
-        // Get public and protected properties.
-        foreach ($reflectionClass->getProperties(ReflectionProperty::IS_PUBLIC | ReflectionProperty::IS_PROTECTED) as $reflectionProperty) {
-            // Only include properties defined directly on the model, not inherited from Model base class.
-            if ($reflectionProperty->getDeclaringClass()->getName() === $reflectionClass->getName()) {
-                 $propAttrs = $this->attributeParser->getPropertyAttributes($reflectionProperty);
-                 if (!empty($propAttrs)) { // Only add if there are attributes
-                    $propertyAttributes[$reflectionProperty->getName()] = $propAttrs;
-                 }
+        
+        // Get all properties (public, protected, and private)
+        $properties = $reflectionClass->getProperties(
+            ReflectionProperty::IS_PUBLIC | 
+            ReflectionProperty::IS_PROTECTED | 
+            ReflectionProperty::IS_PRIVATE
+        );
+        
+        foreach ($properties as $reflectionProperty) {
+            // Include properties defined directly on the model or its parent classes
+            // This ensures we capture properties defined in trait mixins too
+            $propAttrs = $this->attributeParser->getPropertyAttributes($reflectionProperty);
+            if (!empty($propAttrs)) { // Only add if there are attributes
+                $propertyAttributes[$reflectionProperty->getName()] = $propAttrs;
             }
+        }
+        
+        // Also look for properties defined in the database schema
+        // This helps with models that don't explicitly define properties
+        try {
+            $fillableProperties = $instance->getFillable();
+            $visibleProperties = array_diff(
+                array_merge($fillableProperties, array_keys($instance->getCasts())),
+                $instance->getHidden()
+            );
+            
+            // Add these as potential properties even if they don't have attributes
+            // This ensures they're at least documented in the schema
+            foreach ($visibleProperties as $propName) {
+                if (!isset($propertyAttributes[$propName])) {
+                    $propertyAttributes[$propName] = [];
+                }
+            }
+        } catch (\Exception $e) {
+            // Ignore errors if we can't access these methods
         }
 
         $attributesArray = [
@@ -125,7 +153,7 @@ class ModelDiscovery
         return new ModelSchema(
             class: $modelClass,
             table: $instance->getTable(),
-            attributes: $attributesArray, // Pass the new structured array
+            attributes: $attributesArray,
             relationships: [], // Placeholder for now
             casts: $instance->getCasts(),
             fillable: $instance->getFillable(),

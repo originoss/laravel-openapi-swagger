@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Routing\Route;
 use LaravelOpenApi\Parsers\AttributeParser;
 use ReflectionMethod;
+use ReflectionClass;
 
 class RouteDiscovery
 {
@@ -33,6 +34,30 @@ class RouteDiscovery
         // Skip routes from Laravel's internal controllers
         if (str_starts_with($route->getActionName(), 'Laravel\\')) {
             return false;
+        }
+        
+        // Skip the Swagger UI route and OpenAPI spec routes
+        if (isset($this->config['ui']) && isset($this->config['ui']['route'])) {
+            $uiRoute = ltrim($this->config['ui']['route'], '/');
+            if ($route->uri() === $uiRoute) {
+                return false;
+            }
+        }
+        
+        // Skip the OpenAPI JSON/YAML routes
+        if (isset($this->config['paths'])) {
+            if (isset($this->config['paths']['json_route_path'])) {
+                $jsonPath = ltrim($this->config['paths']['json_route_path'], '/');
+                if ($route->uri() === $jsonPath) {
+                    return false;
+                }
+            }
+            if (isset($this->config['paths']['yaml_route_path'])) {
+                $yamlPath = ltrim($this->config['paths']['yaml_route_path'], '/');
+                if ($route->uri() === $yamlPath) {
+                    return false;
+                }
+            }
         }
         
         // Implement config-based filters
@@ -63,6 +88,9 @@ class RouteDiscovery
         $actionName = $route->getActionName();
         $controller = null;
         $controllerMethod = null;
+        $controllerAttributes = [];
+        $routeName = $route->getName();
+        $routeAction = $route->getAction();
 
         if (is_string($actionName) && str_contains($actionName, '@')) {
             [$controller, $controllerMethod] = explode('@', $actionName);
@@ -87,6 +115,21 @@ class RouteDiscovery
             $controllerMethod = '__invoke';
         }
 
+        // Extract controller attributes if controller exists
+        if ($controller && class_exists($controller)) {
+            $controllerAttributes = $this->extractControllerAttributes($controller);
+        }
+        
+        // Extract route constraints (wheres)
+        $wheres = [];
+        if (method_exists($route, 'wheres')) {
+            $wheres = $route->wheres();
+        } elseif (method_exists($route, 'getWheres')) {
+            $wheres = $route->getWheres();
+        } elseif (property_exists($route, 'wheres')) {
+            $wheres = $route->wheres;
+        }
+
         return new RouteInfo(
             method: $route->methods()[0], // Ensure methods returns at least one, or handle empty
             uri: $route->uri(),
@@ -95,7 +138,10 @@ class RouteDiscovery
             controllerMethod: $controllerMethod,
             middleware: $route->middleware(),
             parameters: $this->extractRouteParameters($route),
-            attributes: $this->extractAttributes($route, $controller, $controllerMethod) // Pass controller and method
+            attributes: $this->extractAttributes($route, $controller, $controllerMethod),
+            controllerAttributes: $controllerAttributes,
+            name: $routeName,
+            wheres: $wheres
         );
     }
 
@@ -118,7 +164,7 @@ class RouteDiscovery
         return $parameterNames;
     }
 
-    // Modify extractAttributes to accept $controllerName and $methodName
+    // Extract attributes from controller method
     private function extractAttributes(Route $route, ?string $controllerName, ?string $methodName): array
     {
         if (!$controllerName || !$methodName) {
@@ -138,6 +184,23 @@ class RouteDiscovery
         } catch (\ReflectionException $e) {
             // Log error or handle if reflection fails (e.g., class or method doesn't exist)
             // error_log("ReflectionException for {$controllerName}::{$methodName}: " . $e->getMessage());
+            return [];
+        }
+    }
+    
+    // Extract attributes from controller class
+    private function extractControllerAttributes(string $controllerName): array
+    {
+        if (!class_exists($controllerName)) {
+            return [];
+        }
+        
+        try {
+            $reflectionClass = new ReflectionClass($controllerName);
+            return $this->attributeParser->getClassAttributes($reflectionClass);
+        } catch (\ReflectionException $e) {
+            // Log error or handle if reflection fails
+            // error_log("ReflectionException for controller {$controllerName}: " . $e->getMessage());
             return [];
         }
     }

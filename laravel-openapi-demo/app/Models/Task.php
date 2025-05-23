@@ -1,20 +1,19 @@
 <?php
 
-namespace App\Models; // Assuming demo app uses App namespace
+namespace App\Models; 
 
-use Illuminate\Database\Eloquent\Factories\HasFactory; // Optional: For seeding/testing
+use Illuminate\Database\Eloquent\Factories\HasFactory; 
 use Illuminate\Database\Eloquent\Model;
 use LaravelOpenApi\Attributes as OA;
 
 #[OA\Schema(
     title: 'Task',
     description: 'Represents a task item in the to-do list.',
-    required: ['id', 'title', 'status'] // id is usually required for responses
-    // The 'properties' array is intentionally OMITTED here as per instructions.
+    required: ['id', 'title', 'status'] 
 )]
 class Task extends Model
 {
-    // use HasFactory; // Uncomment if you plan to add a factory
+    // use HasFactory; 
 
     /**
      * The attributes that are mass assignable.
@@ -44,7 +43,7 @@ class Task extends Model
         type: 'integer',
         format: 'int64',
         example: 1,
-        readOnly: true // Typically IDs are read-only after creation
+        readOnly: true 
     )]
     public int $id;
 
@@ -62,7 +61,7 @@ class Task extends Model
         example: 'Milk, Eggs, Bread, and Cheese',
         nullable: true
     )]
-    public ?string $description; // Nullable string
+    public ?string $description; 
 
     #[OA\Property(
         description: 'Current status of the task.',
@@ -80,7 +79,7 @@ class Task extends Model
         example: '2024-12-31',
         nullable: true
     )]
-    public ?string $due_date; // Nullable date string
+    public ?string $due_date; 
 
     #[OA\Property(
         description: 'Timestamp when the task was created.',
@@ -89,7 +88,7 @@ class Task extends Model
         example: '2023-01-01T12:00:00Z',
         readOnly: true
     )]
-    public ?string $created_at; // Made nullable string to align with typical Eloquent behavior if not set
+    public ?string $created_at; 
 
     #[OA\Property(
         description: 'Timestamp when the task was last updated.',
@@ -98,5 +97,5 @@ class Task extends Model
         example: '2023-01-01T13:30:00Z',
         readOnly: true
     )]
-    public ?string $updated_at; // Made nullable string
+    public ?string $updated_at; 
 }

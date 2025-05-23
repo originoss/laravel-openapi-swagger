@@ -7,7 +7,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use LaravelOpenApi\Attributes as OA;
 
+#[OA\Schema(
+    title: 'User',
+    description: 'Represents a user in the system.',
+    required: ['id', 'name', 'email']
+)]
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;

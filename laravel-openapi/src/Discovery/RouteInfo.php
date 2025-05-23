@@ -12,6 +12,9 @@ class RouteInfo
         public ?string $controllerMethod,
         public array $middleware,
         public array $parameters, // Information about URI parameters
-        public array $attributes  // Extracted PHP attributes
+        public array $attributes, // Extracted method PHP attributes
+        public array $controllerAttributes = [], // Extracted controller PHP attributes
+        public ?string $name = null, // Route name
+        public array $wheres = [] // Route constraints
     ) {}
 }
