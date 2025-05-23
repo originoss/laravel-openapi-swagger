@@ -140,9 +140,6 @@ class OpenApiGenerator
                 
                 if ($operationAttribute->deprecated) $operationObject['deprecated'] = true; // Only set if true
                 
-                // If security is defined in Operation attribute, it overrides global/tag security
-                // Note: OpenAPI spec expects security to be an array of Security Requirement Objects.
-                // The OperationAttribute->security is expected to be in this format.
                 if (!empty($operationAttribute->security)) {
                     $operationObject['security'] = $operationAttribute->security;
                 }
@@ -197,11 +194,6 @@ class OpenApiGenerator
             // Assuming $model is an instance of LaravelOpenApi\Discovery\ModelSchema
             $modelSchemaArray = $this->schemaBuilder->buildModelSchema($model);
             
-            // Use class_basename for the schema name/key
-            // It's a common Laravel helper, so it should be available.
-            // If not, a manual string manipulation would be needed:
-            // $parts = explode('\\', $model->class);
-            // $schemaName = end($parts);
             $schemaName = class_basename($model->class);
             
             $schemas[$schemaName] = $modelSchemaArray;
@@ -210,28 +202,184 @@ class OpenApiGenerator
         return $schemas;
     }
 
+    /**
+     * Build security schemes from configuration
+     * 
+     * @return array Security schemes for OpenAPI spec
+     */
     private function buildSecuritySchemes(): array
     {
-        // To be implemented using $this->config['security_schemes']
-        return []; // Placeholder
+        $securitySchemes = $this->config['security_schemes'] ?? [];
+        
+        if (empty($securitySchemes)) {
+            return [];
+        }
+        
+        $result = [];
+        
+        foreach ($securitySchemes as $name => $scheme) {
+            // Validate required fields based on scheme type
+            if (!isset($scheme['type'])) {
+                continue; // Skip invalid schemes
+            }
+            
+            // Process different security scheme types
+            switch ($scheme['type']) {
+                case 'apiKey':
+                    if (!isset($scheme['name']) || !isset($scheme['in'])) {
+                        continue 2; // Skip invalid apiKey scheme and continue with next scheme
+                    }
+                    break;
+                    
+                case 'http':
+                    if (!isset($scheme['scheme'])) {
+                        continue 2; // Skip invalid http scheme and continue with next scheme
+                    }
+                    break;
+                    
+                case 'oauth2':
+                    if (!isset($scheme['flows'])) {
+                        continue 2; // Skip invalid oauth2 scheme and continue with next scheme
+                    }
+                    break;
+                    
+                case 'openIdConnect':
+                    if (!isset($scheme['openIdConnectUrl'])) {
+                        continue 2; // Skip invalid openIdConnect scheme and continue with next scheme
+                    }
+                    break;
+            }
+            
+            $result[$name] = $scheme;
+        }
+        
+        return $result;
     }
 
+    /**
+     * Build reusable parameters from configuration
+     * 
+     * @return array Reusable parameters for OpenAPI spec
+     */
     private function buildReusableParameters(): array
     {
-        // Optional: For defining common parameters
-        return []; // Placeholder
+        $parameters = $this->config['parameters'] ?? [];
+        
+        if (empty($parameters)) {
+            return [];
+        }
+        
+        $result = [];
+        
+        foreach ($parameters as $name => $parameter) {
+            // Validate required fields
+            if (!isset($parameter['name']) || !isset($parameter['in'])) {
+                continue; // Skip invalid parameters
+            }
+            
+            // Ensure description exists (required by OpenAPI spec)
+            if (!isset($parameter['description'])) {
+                $parameter['description'] = $name;
+            }
+            
+            // Process schema if it exists
+            if (isset($parameter['schema']) && is_array($parameter['schema'])) {
+                $parameter['schema'] = $this->processSchema($parameter['schema']);
+            }
+            
+            $result[$name] = $parameter;
+        }
+        
+        return $result;
     }
 
+    /**
+     * Build reusable responses from configuration
+     * 
+     * @return array Reusable responses for OpenAPI spec
+     */
     private function buildReusableResponses(): array
     {
-        // Optional: For defining common responses
-        return []; // Placeholder
+        $responses = $this->config['responses'] ?? [];
+        
+        if (empty($responses)) {
+            return [];
+        }
+        
+        $result = [];
+        
+        foreach ($responses as $name => $response) {
+            // Ensure description exists (required by OpenAPI spec)
+            if (!isset($response['description'])) {
+                $response['description'] = $name;
+            }
+            
+            // Process content if it exists
+            if (isset($response['content']) && is_array($response['content'])) {
+                $processedContent = [];
+                
+                foreach ($response['content'] as $mediaType => $content) {
+                    if (isset($content['schema'])) {
+                        $content['schema'] = $this->processSchema($content['schema']);
+                    }
+                    
+                    $processedContent[$mediaType] = $content;
+                }
+                
+                $response['content'] = $processedContent;
+            }
+            
+            $result[$name] = $response;
+        }
+        
+        return $result;
     }
 
+    /**
+     * Build global security requirements from configuration
+     * 
+     * @return array Global security requirements for OpenAPI spec
+     */
     private function buildGlobalSecurity(): array
     {
-        // To be implemented using $this->config['security'] (if a global security is defined)
-        return []; // Placeholder
+        $security = $this->config['security'] ?? [];
+        
+        if (empty($security)) {
+            return [];
+        }
+        
+        // Validate security requirements format
+        $result = [];
+        
+        foreach ($security as $requirement) {
+            // Security requirement must be an array mapping security scheme names to scopes
+            if (!is_array($requirement)) {
+                continue;
+            }
+            
+            // Each requirement is a separate security option (OR relationship)
+            $validRequirement = [];
+            
+            foreach ($requirement as $name => $scopes) {
+                // Validate that the security scheme exists in the configuration
+                if (!isset($this->config['security_schemes'][$name])) {
+                    continue;
+                }
+                
+                // Scopes must be an array (can be empty for schemes that don't use scopes)
+                if (!is_array($scopes)) {
+                    $scopes = [];
+                }
+                
+                $validRequirement[$name] = $scopes;
+            }
+            
+            if (!empty($validRequirement)) {
+                $result[] = $validRequirement;
+            }
+        }
+        
+        return $result;
     }
 
     /**
@@ -687,7 +835,7 @@ class OpenApiGenerator
             } else {
                 // Generate from URI and method
                 $safeUri = preg_replace('/[^a-zA-Z0-9_]/', '', str_replace(['/', '{', '}'], ['_', '', ''], $uri));
-                $operationObject['operationId'] = $method . $safeUri;
+                $operationObject['operationId'] = $method . ucfirst($safeUri);
             }
         }
         

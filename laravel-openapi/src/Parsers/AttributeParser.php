@@ -5,7 +5,7 @@ namespace LaravelOpenApi\Parsers;
 use ReflectionClass;
 use ReflectionMethod;
 use ReflectionProperty;
-use ReflectionAttribute; // Import ReflectionAttribute
+use ReflectionAttribute;
 
 class AttributeParser
 {
@@ -18,7 +18,6 @@ class AttributeParser
     public function getAttributes(ReflectionClass|ReflectionMethod|ReflectionProperty $reflector): array
     {
         $attributes = [];
-        // Ensure $reflector is not null and getAttributes method exists
         if (!$reflector || !method_exists($reflector, 'getAttributes')) {
             return [];
         }
@@ -27,16 +26,11 @@ class AttributeParser
 
         foreach ($reflectionAttributes as $reflectionAttribute) {
             try {
-                // Ensure the attribute class exists before trying to instantiate
                 if (class_exists($reflectionAttribute->getName())) {
                     $attributes[] = $reflectionAttribute->newInstance();
                 }
             } catch (\Throwable $e) {
-                
-                // Optional: Log error or handle specific exceptions if an attribute fails to instantiate
                 error_log("Failed to instantiate attribute " . $reflectionAttribute->getName() . ": " . $e->getMessage());
-                // For now, re-throw or handle as per application error policy
-                // For this implementation, we'll silently ignore to match skeleton's leniency
             }
         }
 

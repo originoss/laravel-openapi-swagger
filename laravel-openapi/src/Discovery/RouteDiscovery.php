@@ -81,7 +81,20 @@ class RouteDiscovery
         $controller = null;
         $controllerMethod = null;
         $controllerAttributes = [];
-        $routeName = $route->getName();
+        $routeName = null;
+        if ($route->getName()) {
+            // Handle standard route names
+            $routeName = lcfirst(str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $route->getName()))));
+            
+            // Handle name.method style route names
+            if (str_contains($route->getName(), '.')) {
+                $parts = explode('.', $route->getName());
+                $routeName = lcfirst(str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $parts[0]))));
+                if (isset($parts[1])) {
+                    $routeName .= ucfirst(str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $parts[1]))));
+                }
+            }
+        }
         $routeAction = $route->getAction();
 
         if (is_string($actionName) && str_contains($actionName, '@')) {

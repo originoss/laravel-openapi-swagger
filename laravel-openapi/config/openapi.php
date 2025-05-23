@@ -43,6 +43,7 @@ return [
             'type' => 'http',
             'scheme' => 'bearer',
             'bearerFormat' => 'JWT',
+            'description' => 'Laravel Sanctum uses Bearer tokens to authenticate users',
         ],
         'passport' => [
             'type' => 'oauth2',
@@ -50,50 +51,177 @@ return [
                 'authorizationCode' => [
                     'authorizationUrl' => '/oauth/authorize',
                     'tokenUrl' => '/oauth/token',
+                    'scopes' => [
+                        'create' => 'Create resources',
+                        'read' => 'Read resources',
+                        'update' => 'Update resources',
+                        'delete' => 'Delete resources',
+                    ],
+                ],
+                'password' => [
+                    'tokenUrl' => '/oauth/token',
                     'scopes' => [],
+                ],
+            ],
+            'description' => 'Laravel Passport OAuth2 authentication',
+        ],
+        'apiKey' => [
+            'type' => 'apiKey',
+            'name' => 'X-API-KEY',
+            'in' => 'header',
+            'description' => 'API key authentication',
+        ],
+    ],
+    
+    // Global security requirements
+    // Each array element represents an alternative security requirement (OR)
+    // Keys within each element represent required schemes (AND)
+    'security' => [
+        // Option 1: Use sanctum authentication
+        ['sanctum' => []],
+        // Option 2: Use passport with specific scopes
+        ['passport' => ['read', 'create']],
+    ],
+    
+    // Reusable parameters that can be referenced in operations
+    'parameters' => [
+        'page' => [
+            'name' => 'page',
+            'in' => 'query',
+            'description' => 'Page number for pagination',
+            'required' => false,
+            'schema' => [
+                'type' => 'integer',
+                'default' => 1,
+                'minimum' => 1,
+            ],
+        ],
+        'per_page' => [
+            'name' => 'per_page',
+            'in' => 'query',
+            'description' => 'Number of items per page',
+            'required' => false,
+            'schema' => [
+                'type' => 'integer',
+                'default' => 15,
+                'minimum' => 1,
+                'maximum' => 100,
+            ],
+        ],
+        'sort' => [
+            'name' => 'sort',
+            'in' => 'query',
+            'description' => 'Field to sort by, prefix with - for descending order',
+            'required' => false,
+            'schema' => [
+                'type' => 'string',
+                'example' => '-created_at',
+            ],
+        ],
+    ],
+    
+    // Reusable responses that can be referenced in operations
+    'responses' => [
+        'Unauthorized' => [
+            'description' => 'Authentication credentials were missing or invalid',
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'message' => [
+                                'type' => 'string',
+                                'example' => 'Unauthenticated.',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+        'Forbidden' => [
+            'description' => 'The user does not have the necessary permissions',
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'message' => [
+                                'type' => 'string',
+                                'example' => 'This action is unauthorized.',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+        'NotFound' => [
+            'description' => 'The specified resource was not found',
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'message' => [
+                                'type' => 'string',
+                                'example' => 'Resource not found.',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+        'ValidationError' => [
+            'description' => 'The request was invalid',
+            'content' => [
+                'application/json' => [
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'message' => [
+                                'type' => 'string',
+                                'example' => 'The given data was invalid.',
+                            ],
+                            'errors' => [
+                                'type' => 'object',
+                                'example' => [
+                                    'field_name' => [
+                                        'The field name is required.',
+                                    ],
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
             ],
         ],
     ],
 
-    // Placeholder for spec serving configuration, to be used by the Service Provider's boot method later
-    'serve_spec' => env('OPENAPI_SERVE_SPEC', true), // Default to true to enable by default
+    'serve_spec' => env('OPENAPI_SERVE_SPEC', true),
 
     'paths' => [
         'json_route_path' => env('OPENAPI_JSON_ROUTE_PATH', '/openapi.json'),
-        'json_route_name' => env('OPENAPI_JSON_ROUTE_NAME', 'openapi.json'), // Add this
+        'json_route_name' => env('OPENAPI_JSON_ROUTE_NAME', 'openapi.json'),
 
         'yaml_route_path' => env('OPENAPI_YAML_ROUTE_PATH', '/openapi.yaml'),
-        'yaml_route_name' => env('OPENAPI_YAML_ROUTE_NAME', 'openapi.yaml'), // Add this
+        'yaml_route_name' => env('OPENAPI_YAML_ROUTE_NAME', 'openapi.yaml'),
         
-        // Output path for the openapi:generate command.
-        // This should align with what SpecController expects.
-        // The 'output_directory' is relative to public_path().
-        // The 'output_filename' is without extension.
-        'output_directory' => env('OPENAPI_OUTPUT_DIRECTORY', ''), // e.g., 'api-docs' for public/api-docs/openapi.json
-        'output_filename' => env('OPENAPI_OUTPUT_FILENAME', 'openapi'), // results in openapi.json or openapi.yaml
+        'output_directory' => env('OPENAPI_OUTPUT_DIRECTORY', ''),
+        'output_filename' => env('OPENAPI_OUTPUT_FILENAME', 'openapi'),
     ],
 
     'ui' => [
         'enabled' => env('OPENAPI_UI_ENABLED', true),
-        'route' => env('OPENAPI_UI_ROUTE', '/api-docs'), // Path for the Swagger UI page
-        'route_name' => env('OPENAPI_UI_ROUTE_NAME', 'openapi.ui'), // Route name for the UI page
+        'route' => env('OPENAPI_UI_ROUTE', '/api-docs'),
+        'route_name' => env('OPENAPI_UI_ROUTE_NAME', 'openapi.ui'),
 
-        // Configuration for the Swagger UI view itself:
-        'title' => env('OPENAPI_UI_TITLE', 'OpenAPI Documentation UI'), // Title for the HTML page
+        'title' => env('OPENAPI_UI_TITLE', 'OpenAPI Documentation UI'),
         
-        // Default format to display in the UI (json or yaml)
         'default_format' => env('OPENAPI_UI_DEFAULT_FORMAT', 'json'),
         
-        // Specifies the route *name* for the JSON spec, used by the view to generate the URL.
-        // This should match one of the names defined in 'paths'.
         'spec_route_name_json' => env('OPENAPI_UI_SPEC_ROUTE_NAME_JSON', 'openapi.json'),
         
-        // Additional configuration options for Swagger UI
         'config' => [
-            // Any additional Swagger UI configuration options can be added here
-            // See https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
-            'docExpansion' => env('OPENAPI_UI_DOC_EXPANSION', 'list'), // 'list', 'full', or 'none'
+            'docExpansion' => env('OPENAPI_UI_DOC_EXPANSION', 'list'),
             'deepLinking' => true,
             'persistAuthorization' => true,
         ],

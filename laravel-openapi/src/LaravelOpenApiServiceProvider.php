@@ -24,13 +24,13 @@ class LaravelOpenApiServiceProvider extends ServiceProvider
         $this->app->singleton(ModelDiscovery::class);
         
         // Register Parser services
-        $this->app->singleton(AttributeParser::class); // AttributeParser is needed by RouteDiscovery
+        $this->app->singleton(AttributeParser::class);
 
         // Register Schema Builder
         $this->app->singleton(SchemaBuilder::class); 
 
         // Register Core Generator
-        $this->app->singleton(OpenApiGenerator::class); // Uncomment/Add this line
+        $this->app->singleton(OpenApiGenerator::class); 
     }
 
     public function boot(): void
@@ -51,34 +51,31 @@ class LaravelOpenApiServiceProvider extends ServiceProvider
 
             $this->commands([
                 GenerateCommand::class,
-                // Commands\CacheCommand::class, // Keep commented
-                // Commands\ClearCacheCommand::class, // Keep commented
             ]);
         }
         
         // Load views from the package
-        $this->loadViewsFrom($viewBasePath, 'openapi'); // Namespace views with 'openapi::'
+        $this->loadViewsFrom($viewBasePath, 'openapi'); 
 
         // Register middleware for runtime spec serving
-        // Note: Changed default for 'openapi.serve_spec' to true as per subtask snippet for UI
         if ($this->app['config']->get('openapi.serve_spec', true)) { 
             Route::get(
                 $this->app['config']->get('openapi.paths.json_route_path', '/openapi.json'),
                 [SpecController::class, 'json']
-            )->name($this->app['config']->get('openapi.paths.json_route_name', 'openapi.json')); // Use configured route name
+            )->name($this->app['config']->get('openapi.paths.json_route_name', 'openapi.json'));
 
             Route::get(
                 $this->app['config']->get('openapi.paths.yaml_route_path', '/openapi.yaml'),
                 [SpecController::class, 'yaml']
-            )->name($this->app['config']->get('openapi.paths.yaml_route_name', 'openapi.yaml')); // Use configured route name
+            )->name($this->app['config']->get('openapi.paths.yaml_route_name', 'openapi.yaml'));
         }
 
         // New route for Swagger UI
         if ($this->app['config']->get('openapi.ui.enabled', true)) {
             Route::get(
-                $this->app['config']->get('openapi.ui.route', '/api-docs'), // Use configured UI route path
+                $this->app['config']->get('openapi.ui.route', '/api-docs'),
                 [SpecController::class, 'ui']
-            )->name($this->app['config']->get('openapi.ui.route_name', 'openapi.ui')); // Optional: name the UI route
+            )->name($this->app['config']->get('openapi.ui.route_name', 'openapi.ui'));
         }
     }
 }

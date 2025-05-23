@@ -108,7 +108,7 @@
                 "tags": [
                     "Tasks"
                 ],
-                "operationId": "tasks.index"
+                "operationId": "tasksIndex"
             },
             "post": {
                 "parameters": [],
@@ -143,7 +143,7 @@
                 "tags": [
                     "Tasks"
                 ],
-                "operationId": "tasks.store"
+                "operationId": "tasksStore"
             }
         },
         "/api/tasks/{task}": {
@@ -186,7 +186,7 @@
                 "tags": [
                     "Tasks"
                 ],
-                "operationId": "tasks.show"
+                "operationId": "tasksShow"
             },
             "put": {
                 "parameters": [
@@ -240,7 +240,7 @@
                 "tags": [
                     "Tasks"
                 ],
-                "operationId": "tasks.update"
+                "operationId": "tasksUpdate"
             },
             "delete": {
                 "parameters": [
@@ -273,7 +273,7 @@
                 "tags": [
                     "Tasks"
                 ],
-                "operationId": "tasks.destroy"
+                "operationId": "tasksDestroy"
             }
         },
         "/api/users": {
@@ -320,7 +320,7 @@
                 "tags": [
                     "Users"
                 ],
-                "operationId": "users.index"
+                "operationId": "usersIndex"
             }
         },
         "/api/users/{user}": {
@@ -362,7 +362,7 @@
                 "tags": [
                     "Users"
                 ],
-                "operationId": "users.show"
+                "operationId": "usersShow"
             }
         },
         "/api/products": {
@@ -430,7 +430,7 @@
                 "tags": [
                     "Products"
                 ],
-                "operationId": "products.index"
+                "operationId": "productsIndex"
             },
             "post": {
                 "parameters": [],
@@ -465,7 +465,7 @@
                 "tags": [
                     "Products"
                 ],
-                "operationId": "products.store"
+                "operationId": "productsStore"
             }
         },
         "/api/products/{product}": {
@@ -507,7 +507,7 @@
                 "tags": [
                     "Products"
                 ],
-                "operationId": "products.show"
+                "operationId": "productsShow"
             },
             "put": {
                 "parameters": [
@@ -560,7 +560,7 @@
                 "tags": [
                     "Products"
                 ],
-                "operationId": "products.update"
+                "operationId": "productsUpdate"
             },
             "delete": {
                 "parameters": [
@@ -593,7 +593,7 @@
                 "tags": [
                     "Products"
                 ],
-                "operationId": "products.destroy"
+                "operationId": "productsDestroy"
             }
         }
     },
@@ -790,11 +790,144 @@
                 ]
             }
         },
-        "securitySchemes": [],
-        "parameters": [],
-        "responses": []
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            },
+            "passport": {
+                "type": "oauth2",
+                "flows": {
+                    "authorizationCode": {
+                        "authorizationUrl": "/oauth/authorize",
+                        "tokenUrl": "/oauth/token",
+                        "scopes": []
+                    }
+                }
+            }
+        },
+        "parameters": {
+            "page": {
+                "name": "page",
+                "in": "query",
+                "description": "Page number for pagination",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "default": 1,
+                    "minimum": 1
+                }
+            },
+            "per_page": {
+                "name": "per_page",
+                "in": "query",
+                "description": "Number of items per page",
+                "required": false,
+                "schema": {
+                    "type": "integer",
+                    "default": 15,
+                    "minimum": 1,
+                    "maximum": 100
+                }
+            },
+            "sort": {
+                "name": "sort",
+                "in": "query",
+                "description": "Field to sort by, prefix with - for descending order",
+                "required": false,
+                "schema": {
+                    "type": "string",
+                    "example": "-created_at"
+                }
+            }
+        },
+        "responses": {
+            "Unauthorized": {
+                "description": "Authentication credentials were missing or invalid",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "example": "Unauthenticated."
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "Forbidden": {
+                "description": "The user does not have the necessary permissions",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "example": "This action is unauthorized."
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "NotFound": {
+                "description": "The specified resource was not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "example": "Resource not found."
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "ValidationError": {
+                "description": "The request was invalid",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "example": "The given data was invalid."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "example": {
+                                        "field_name": [
+                                            "The field name is required."
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     },
-    "security": [],
+    "security": [
+        {
+            "sanctum": []
+        },
+        {
+            "passport": [
+                "read",
+                "create"
+            ]
+        }
+    ],
     "tags": [
         {
             "name": "Tasks",

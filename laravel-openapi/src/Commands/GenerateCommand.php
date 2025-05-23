@@ -31,9 +31,9 @@ class GenerateCommand extends Command
         if (empty($outputExtension)) { // If --output doesn't have an extension, append based on format
             $output .= '.' . $format;
         } elseif (strtolower($outputExtension) !== $format) { // Use strtolower for comparison
-            $this->warn("Output filename extension .{$outputExtension} does not match format --format={$format}. Using format {$format} with original filename.");
-            // Optionally, force extension:
-            // $output = pathinfo($output, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR . pathinfo($output, PATHINFO_FILENAME) . '.' . $format;
+            $this->warn("Output filename extension .{$outputExtension} does not match format --format={$format}. Changing extension to match format.");
+            // Force the extension to match the format
+            $output = pathinfo($output, PATHINFO_DIRNAME) . DIRECTORY_SEPARATOR . pathinfo($output, PATHINFO_FILENAME) . '.' . $format;
         }
 
         $content = '';
