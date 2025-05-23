@@ -16,9 +16,8 @@ A Laravel package for generating OpenAPI (formerly Swagger) specifications from 
 
 1.  **Require the package via Composer:**
     ```bash
-    composer require origin-oss/laravel-openapi
+    composer require originoss/laravel-openapi
     ```
-    *(Note: Replace `origin-oss/laravel-openapi` with the actual package name once registered on Packagist.)*
 
 2.  **Publish the configuration file (optional):**
     If you need to customize the default settings, you can publish the configuration file:

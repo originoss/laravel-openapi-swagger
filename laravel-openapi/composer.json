@@ -1,5 +1,5 @@
 {
-    "name": "origin-oss/laravel-openapi",
+    "name": "originoss/laravel-openapi",
     "description": "A Laravel package for generating OpenAPI specifications from PHP 8 attributes.",
     "type": "library",
     "license": "MIT",

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5de5e16ab816983986936ffbd4babf90",
+    "content-hash": "0252071af92045fe6c4ada37c19586b8",
     "packages": [
         {
             "name": "brick/math",
@@ -2391,12 +2391,12 @@
             "time": "2024-11-21T10:36:35+00:00"
         },
         {
-            "name": "origin-oss/laravel-openapi",
-            "version": "dev-feature/openapi-initial-structure",
+            "name": "originoss/laravel-openapi",
+            "version": "dev-main",
             "dist": {
                 "type": "path",
                 "url": "../laravel-openapi",
-                "reference": "6f23d8535c636b0a5332965bd3e3eeef88147acf"
+                "reference": "decc5e64250a645cf55be2606140636ea563c01f"
             },
             "require": {
                 "illuminate/console": "^9.0 || ^10.0 || ^11.0",
@@ -8169,7 +8169,7 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "origin-oss/laravel-openapi": 20
+        "originoss/laravel-openapi": 20
     },
     "prefer-stable": true,
     "prefer-lowest": false,
